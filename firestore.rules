@@ -1,0 +1,218 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    // Roles live on users/{uid}.role: Developer > Master > Admin > Staff (empty).
+    // Master and Developer can do everything; the first Developer is set in the Firebase console.
+    function role() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get("role", ""); }
+    function rank(r) { return {"developer": 3, "master": 2, "admin": 1}.get(r, 0); }
+    function isSuper() { return signedIn() && role() in ["master", "developer"]; }
+    function isAdmin() { return signedIn() && role() in ["admin", "master", "developer"]; }
+    function canClose() { return isAdmin(); }
+
+    // A month is locked once periods/{YYYY-MM} exists (Tutup buku).
+    function openMonth(date) {
+      let p = date.split("-");
+      return !exists(/databases/$(database)/documents/periods/$(p[0] + "-" + p[1]));
+    }
+
+    // Master data (lib/master.ts): stored at <col>/{code}; the code never
+    // changes and records are deactivated, never deleted. Add new ones here.
+    function isMaster(col) { return col in ["suppliers", "departments", "materials", "products",
+                                  "accounts", "reportLines", "purchaseItems",
+                                  "clothGrades", "looms", "customers"]; }
+
+    // Collections with their own rules below; the catch-all must not open them up.
+    function reserved(col) { return col in ["logs", "users", "periods", "imports", "rolls", "loomPeriods",
+                                  "journals", "accountingPeriods", "bankRecs",
+                                  "purchaseInvoices", "importPurchases", "supplierPayments",
+                                  "salesInvoices", "customerReceipts", "vatPeriods",
+                                  "fgProductions", "inventoryPostings", "weighings", "stockCounts",
+                                  "stockMovements", "processings", "usages"]; }
+
+    // Change history: add only, attributed to the writer.
+    match /logs/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.by.uid == request.auth.uid;
+    }
+
+    // users/{uid}: anyone edits their own profile but never its role.
+    // Master/Developer change only the role, of a user ranked below them, to a role below
+    // theirs: a Developer's role can never be changed, a Master's only by a Developer.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid && !("role" in request.resource.data);
+      allow update: if signedIn() && (
+        (request.auth.uid == uid && request.resource.data.get("role", "") == resource.data.get("role", ""))
+        || (isSuper()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["role"])
+          && request.resource.data.role in ["", "master", "admin"]
+          && rank(resource.data.get("role", "")) < rank(role())
+          && rank(request.resource.data.role) < rank(role())));
+    }
+
+    // Loom months close separately from the warehouse: loomPeriods/{YYYY-MM}.
+    function openLoom(date) {
+      let p = date.split("-");
+      return !exists(/databases/$(database)/documents/loomPeriods/$(p[0] + "-" + p[1]));
+    }
+    match /loomPeriods/{month} {
+      allow read: if signedIn();
+      allow create: if canClose();
+    }
+
+    // Cloth rolls: rolls/{roll number}; never deleted; only "Di stok" → "Dikeluarkan".
+    match /rolls/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && id == string(request.resource.data.number) && openLoom(request.resource.data.date);
+      allow update: if signedIn() && ((resource.data.status == "instock" && request.resource.data.status == "issued"
+          && openLoom(request.resource.data.issueDate))
+        // An issued roll is consumed once by a finished-goods production.
+        || (resource.data.status == "issued" && !("usedIn" in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usedIn"])));
+    }
+
+    // Accounting months: accountingPeriods/{YYYY-MM} with status "closed" locks journals dated in it.
+    function openAccounting(date) {
+      let p = date.split("-");
+      let path = /databases/$(database)/documents/accountingPeriods/$(p[0] + "-" + p[1]);
+      // Read the period only when it exists (short-circuit), so open months never error.
+      return !exists(path) || get(path).data.status != "closed";
+    }
+    match /accountingPeriods/{month} {
+      allow read: if signedIn();
+      // Closing: Admin (and Master/Developer), also reopening a closed month.
+      allow create: if canClose() && request.resource.data.status == "closed";
+      allow update: if (resource.data.status != "closed" && canClose())
+        || (resource.data.status == "closed" && request.resource.data.status == "open" && isAdmin());
+    }
+
+    // Journal entries are never edited or deleted; the only change is recording their reversal.
+    match /journals/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openAccounting(request.resource.data.date);
+      allow update: if signedIn() && openAccounting(resource.data.date)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["reversedBy"]);
+    }
+
+    // Bank reconciliations, per bank per month, while the month is open.
+    match /bankRecs/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && openAccounting(request.resource.data.month + "-01");
+    }
+
+    // Purchase invoices: created with their journal; afterwards only payments change them.
+    match /purchaseInvoices/{id} {
+      allow read: if signedIn();
+      // The 2025 import creates invoices in closed months, linked to existing journals.
+      allow create: if signedIn() && ((openAccounting(request.resource.data.date) && vatOpen(request.resource.data.date))
+        || (request.resource.data.imported == true && canClose()));
+      // Payments and PPh deposit by anyone; approving a weighing difference only by an Admin.
+      allow update: if (signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["payments", "paid", "remaining", "status", "whtPaid"]))
+        || (isAdmin() && resource.data.matchStatus == "pending"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["matchStatus", "matchApprovedBy"]));
+    }
+    match /importPurchases/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openAccounting(request.resource.data.pibDate) && vatOpen(request.resource.data.pibDate);
+    }
+    // Supplier payments above the limit wait for an Admin, who alone can post or reject them.
+    match /supplierPayments/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openAccounting(request.resource.data.date)
+        && (request.resource.data.status == "pending" || request.resource.data.total <= 100000000 || isAdmin());
+      allow update: if isAdmin() && resource.data.status == "pending";
+    }
+
+    // VAT months marked reported lock purchase, import and sales invoices dated in them.
+    function vatOpen(date) {
+      let p = date.split("-");
+      let path = /databases/$(database)/documents/vatPeriods/$(p[0] + "-" + p[1]);
+      return !exists(path) || get(path).data.reported != true;
+    }
+    match /vatPeriods/{month} {
+      allow read: if signedIn();
+      allow create, update: if canClose();
+    }
+
+    // Sales invoices: created with their journal; afterwards only receipts change them.
+    match /salesInvoices/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openAccounting(request.resource.data.date) && vatOpen(request.resource.data.date);
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["payments", "paid", "remaining", "status"]);
+    }
+    match /customerReceipts/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openAccounting(request.resource.data.date);
+    }
+
+    match /fgProductions/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openAccounting(request.resource.data.date);
+    }
+    // Raw material used, posted once per closed warehouse month.
+    match /inventoryPostings/{month} {
+      allow read: if signedIn();
+      allow create: if canClose();
+    }
+    match /materialMaps/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // One-time imports (e.g. imports/warehouse-history): Admin (and Master/Developer) only.
+    match /imports/{id} {
+      allow read: if signedIn();
+      allow create, update: if canClose();
+    }
+
+    // Closed months: created once by an Admin, never changed.
+    match /periods/{month} {
+      allow read: if signedIn();
+      allow create: if canClose();
+    }
+
+    // Truck weighings: never deleted; only a truck still on site, in an open month, can change.
+    match /weighings/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openMonth(request.resource.data.date);
+      allow update: if signedIn() && ((resource.data.status == "onsite"
+          && openMonth(resource.data.date) && openMonth(request.resource.data.date))
+        // A finished weighing can only be linked once to the purchase invoice that pays for it.
+        || (resource.data.status == "stocked" && !("invoiceId" in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["invoiceId"])));
+    }
+
+    // Stock counts: big differences can only be posted by an Admin.
+    function withinLimit(d) {
+      return math.abs(d.difference) <= 500 && math.abs(d.difference) <= 0.01 * math.abs(d.systemBalance);
+    }
+    match /stockCounts/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openMonth(request.resource.data.date)
+        && (request.resource.data.status == "pending" || withinLimit(request.resource.data) || isAdmin());
+      allow update: if isAdmin() && resource.data.status == "pending" && openMonth(resource.data.date);
+    }
+
+    // Permanent history: add only (in an open month), never edited or deleted.
+    match /{col}/{id} {
+      allow read: if signedIn() && col in ["stockMovements", "processings", "usages"];
+      allow create: if signedIn() && col in ["stockMovements", "processings", "usages"]
+        && openMonth(request.resource.data.date);
+    }
+
+    match /{col}/{id} {
+      allow read: if signedIn() && !reserved(col);
+      allow create: if signedIn() && (isMaster(col)
+        ? request.resource.data.code == id
+        : !reserved(col));
+      allow update: if signedIn() && (isMaster(col)
+        ? request.resource.data.code == resource.data.code
+        : !reserved(col));
+      allow delete: if signedIn() && !isMaster(col) && !reserved(col);
+    }
+  }
+}
