@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import {
   collection,
+  doc,
   limit,
   onSnapshot,
   orderBy,
@@ -63,6 +64,23 @@ export function useCollection<T>(path: string, options: Options = {}) {
       (error) => setState((s) => ({ ...s, loading: false, error }))
     )
   }, [uid, path, field, desc, max, filters, options.skip])
+
+  return state
+}
+
+/** Live view of one document; `data` is null while loading or when it doesn't exist. */
+export function useDocument<T>(path: string, id: string | undefined) {
+  const uid = useAuth().user?.uid
+  const [state, setState] = useState<{ data: (T & { id: string }) | null; loading: boolean; error: Error | null }>({ data: null, loading: true, error: null })
+
+  useEffect(() => {
+    if (!uid || !id) return
+    return onSnapshot(
+      doc(db, path, id),
+      (snap) => setState({ data: snap.exists() ? { id: snap.id, ...(snap.data({ serverTimestamps: "estimate" }) as T) } : null, loading: false, error: null }),
+      (error) => setState({ data: null, loading: false, error })
+    )
+  }, [uid, path, id])
 
   return state
 }

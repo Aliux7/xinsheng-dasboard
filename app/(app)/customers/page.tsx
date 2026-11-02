@@ -2,7 +2,7 @@
 
 import { MasterPage } from "@/components/master-page"
 import { NumberInput } from "@/components/number-input"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { CUSTOMERS, type Customer } from "@/lib/collections"
@@ -18,6 +18,10 @@ const empty: Omit<Customer, "id"> = {
   phone: "",
   paymentDays: 30,
   creditLimit: null,
+  recipientName: "",
+  recipientAddress: "",
+  recipientPhone: "",
+  areaZh: "",
   active: true,
 }
 
@@ -73,6 +77,28 @@ export default function CustomersPage() {
               <NumberInput id="creditLimit" value={form.creditLimit} onChange={(creditLimit) => set({ creditLimit })} step={1} />
             </Field>
           </div>
+          <FieldSet>
+            <FieldLegend variant="label">Pengiriman (default surat jalan)</FieldLegend>
+            <div className="grid grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel htmlFor="recipientName">Nama penerima</FieldLabel>
+                <Input id="recipientName" value={form.recipientName ?? ""} onChange={(e) => set({ recipientName: e.target.value })} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="recipientPhone">Telp. penerima</FieldLabel>
+                <Input id="recipientPhone" type="tel" value={form.recipientPhone ?? ""} onChange={(e) => set({ recipientPhone: e.target.value })} />
+              </Field>
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="recipientAddress">Alamat penerima</FieldLabel>
+                <Input id="recipientAddress" value={form.recipientAddress ?? ""} onChange={(e) => set({ recipientAddress: e.target.value })} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="areaZh">Area (Mandarin)</FieldLabel>
+                <Input id="areaZh" value={form.areaZh ?? ""} onChange={(e) => set({ areaZh: e.target.value })} placeholder="泗水 SBY" />
+              </Field>
+            </div>
+            <FieldDescription>Kosongkan untuk memakai alamat dan telepon pelanggan. Area Mandarin dicetak di ringkasan surat jalan (地址).</FieldDescription>
+          </FieldSet>
         </>
       )}
     />

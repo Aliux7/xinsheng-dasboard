@@ -41,7 +41,7 @@ export function hppMonth(
   const priorToWip = [...byMonth].filter(([m]) => m < month).reduce((s, [, r]) => s + sumRows(r, "consumedValue"), 0)
   const priorConversion = lineCost(data.journals, data.accounts, "LR06", "0000", start) + lineCost(data.journals, data.accounts, "LR07", "0000", start)
   const fgValue = (from: string, to: string) => round2(data.productions.filter((p) => p.date >= from && p.date < to).reduce((s, p) => s + p.value, 0))
-  const cogsOf = (from: string, to: string) => round2(data.sales.filter((i) => i.date >= from && i.date < to).reduce((s, i) => s + (i.cogs ?? 0), 0))
+  const cogsOf = (from: string, to: string) => round2(data.sales.filter((i) => i.status !== "cancelled" && i.date >= from && i.date < to).reduce((s, i) => s + (i.cogs ?? 0), 0))
 
   const production = round2(toWip + labour + overhead)
   const wipBegin = round2(priorToWip + priorConversion - fgValue("0000", start))

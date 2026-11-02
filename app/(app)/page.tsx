@@ -14,6 +14,7 @@ import {
   ACCOUNTS,
   BANKS,
   CONDITIONS,
+  DELIVERIES,
   JOURNALS,
   MATERIALS,
   PURCHASE_INVOICES,
@@ -24,6 +25,7 @@ import {
   SUPPLIER_PAYMENTS,
   type Account,
   type Condition,
+  type Delivery,
   type Journal,
   type Material,
   type PurchaseInvoice,
@@ -64,7 +66,9 @@ export default function DashboardPage() {
   const rolls = useCollection<Roll>(ROLLS, { where: [["status", "==", "instock"]] }).data
   const payables = useCollection<PurchaseInvoice>(PURCHASE_INVOICES, { where: [["status", "in", ["open", "partial"]]] }).data
   const receivables = useCollection<SalesInvoice>(SALES_INVOICES, { where: [["status", "in", ["open", "partial"]]] }).data
-  const salesMonth = useCollection<SalesInvoice>(SALES_INVOICES, { where: [["date", ">=", start], ["date", "<", end]], skip: !month }).data
+  const salesMonth = useCollection<SalesInvoice>(SALES_INVOICES, { where: [["date", ">=", start], ["date", "<", end]], skip: !month }).data.filter((i) => i.status !== "cancelled")
+  const deliveriesMonth = useCollection<Delivery>(DELIVERIES, { where: [["date", ">=", start], ["date", "<", end]], skip: !month }).data.filter((d) => d.status !== "cancelled")
+  const notInvoiced = useCollection<Delivery>(DELIVERIES, { where: [["status", "==", "open"]] }).data
   const journalsMonth = useCollection<Journal>(JOURNALS, { where: [["date", ">=", start], ["date", "<", end]], skip: !month }).data
   const accounts = useCollection<Account>(ACCOUNTS).data
   const bank1 = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains", BANKS[0].account]] }).data
@@ -74,7 +78,7 @@ export default function DashboardPage() {
   const months = month ? lastMonths(month, 12) : []
   const yearStart = months[0] ? `${months[0]}-01` : ""
   const daysStart = today ? addDays(today, -29) : ""
-  const salesYear = useCollection<SalesInvoice>(SALES_INVOICES, { where: [["date", ">=", yearStart]], skip: !yearStart }).data
+  const salesYear = useCollection<SalesInvoice>(SALES_INVOICES, { where: [["date", ">=", yearStart]], skip: !yearStart }).data.filter((i) => i.status !== "cancelled")
   const purchasesYear = useCollection<PurchaseInvoice>(PURCHASE_INVOICES, { where: [["date", ">=", yearStart]], skip: !yearStart }).data
   const movements = useCollection<StockMovement>(STOCK_MOVEMENTS, { where: [["date", ">=", daysStart]], skip: !daysStart }).data
   const [tradeRange, setTradeRange] = useState(6)
@@ -100,6 +104,8 @@ export default function DashboardPage() {
   const pick = (section: string) => round2((pnl?.lines ?? []).filter((l) => l.section === section).reduce((s, l) => s + l.values[m], 0))
   const profit = round2(pick("revenue") - pick("cost") - pick("selling") - pick("ga") + pick("other") - pick("unmapped"))
   const waiting = countsWaiting + paymentsWaiting + matchesWaiting
+  const deliveriesToday = deliveriesMonth.filter((d) => d.date === today)
+  const rollsOf = (rows: Delivery[]) => rows.reduce((s, d) => s + d.totalQty, 0)
 
   // Tile charts.
   const stockSlices = (Object.keys(CONDITIONS) as Condition[]).map((c) => ({
@@ -175,13 +181,31 @@ export default function DashboardPage() {
         </Tile>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Tile href="/profit-loss" title={`Penjualan & laba ${month}`} value={formatNumber(sales)}>
           <Bars slices={pnlSlices} />
           <Note warn={profit < 0}>Laba (rugi) bulan berjalan: {formatNumber(profit)}</Note>
         </Tile>
         <Tile href="/bank" title="Kas & bank" value={formatNumber(round2(banks.reduce((s, b) => s + b.balance, 0)))}>
           <Bars slices={bankSlices} />
+        </Tile>
+        <Tile href="/deliveries" title="Surat jalan hari ini" value={`${deliveriesToday.length} SJ`}>
+          <div className="flex flex-col gap-1 text-sm">
+            {(
+              [
+                ["Hari ini", deliveriesToday],
+                ["Bulan ini", deliveriesMonth],
+                ["Belum difakturkan", notInvoiced],
+              ] as const
+            ).map(([label, rows]) => (
+              <Link key={label} href="/deliveries" className="flex justify-between rounded-md px-2 py-1.5 hover:bg-muted">
+                <span>{label}</span>
+                <span className={`font-semibold tabular-nums ${label === "Belum difakturkan" && rows.length ? "text-amber-600" : ""}`}>
+                  {rows.length} SJ · {formatNumber(rollsOf([...rows]))} roll
+                </span>
+              </Link>
+            ))}
+          </div>
         </Tile>
         <Tile href="/stock-counts" title="Menunggu persetujuan" value={String(waiting)} warn={waiting > 0}>
           <div className="flex flex-col gap-1 text-sm">

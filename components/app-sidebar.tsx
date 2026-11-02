@@ -40,9 +40,11 @@ import {
   RecycleIcon,
   ScaleIcon,
   SearchIcon,
+  SettingsIcon,
   LogOutIcon,
   PackageCheckIcon,
   PackageIcon,
+  PackageOpenIcon,
   PercentIcon,
   ShipIcon,
   ShoppingBagIcon,
@@ -175,6 +177,7 @@ export const nav: { label: string; items: NavLink[] }[] = [
   {
     label: "Penjualan",
     items: [
+      { title: "Surat jalan", url: "/deliveries", icon: PackageOpenIcon },
       { title: "Faktur penjualan", url: "/sales-invoices", icon: FileTextIcon },
       {
         title: "Penerimaan piutang",
@@ -221,6 +224,7 @@ export const nav: { label: string; items: NavLink[] }[] = [
       { title: "Pengguna", url: "/users", icon: UsersIcon },
       { title: "Riwayat perubahan", url: "/logs", icon: HistoryIcon },
       { title: "Impor data", url: "/imports", icon: DatabaseBackupIcon },
+      { title: "Pengaturan", url: "/settings", icon: SettingsIcon },
     ],
   },
 ];

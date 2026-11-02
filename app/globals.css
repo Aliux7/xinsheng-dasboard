@@ -150,3 +150,12 @@
     @apply font-sans;
   }
 }
+/* Print routes (components/print-page.tsx): only the page itself is printed (not e.g. the toaster). */
+@media print {
+  body > *:not(.print-page) {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}

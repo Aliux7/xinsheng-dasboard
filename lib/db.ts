@@ -153,3 +153,11 @@ export async function nextNumber(w: Writer, prefix: string, date: string) {
   await w.set("counters", id, { last: last + 1 }, { silent: true })
   return formatDocNumber(prefix, date, last + 1)
 }
+
+/** Daily number YYMMDDNNN (3-digit sequence per day), e.g. 251120009; counter `counters/{PREFIX-YYYY-MM-DD}`. */
+export async function nextDailyNumber(w: Writer, prefix: string, date: string) {
+  const id = `${prefix}-${date}`
+  const last = (await w.get<{ last: number }>("counters", id))?.last ?? 0
+  await w.set("counters", id, { last: last + 1 }, { silent: true })
+  return `${date.slice(2, 4)}${date.slice(5, 7)}${date.slice(8, 10)}${String(last + 1).padStart(3, "0")}`
+}

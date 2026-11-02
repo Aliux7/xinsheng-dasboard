@@ -13,6 +13,7 @@ const empty: Omit<Product, "id"> = {
   type: "",
   size: "",
   colour: "",
+  colourZh: "",
   grossKg: null,
   tubeKg: null,
   netKg: null,
@@ -61,9 +62,14 @@ export default function ProductsPage() {
             </Field>
             <Field>
               <FieldLabel htmlFor="loom">Kain dasar loom</FieldLabel>
-              <Input id="loom" value={form.loom} onChange={(e) => set({ loom: e.target.value })} />
+              <Input id="loom" value={form.loom} onChange={(e) => set({ loom: e.target.value })} placeholder="灰布" />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="colourZh">Warna Mandarin (cetak)</FieldLabel>
+              <Input id="colourZh" value={form.colourZh ?? ""} onChange={(e) => set({ colourZh: e.target.value })} placeholder="棕银 BrS" />
             </Field>
           </div>
+          <FieldDescription className="-mt-3">Surat jalan mencetak warna tanpa huruf Mandarin; ringkasan Mandarin memakai Warna Mandarin (atau huruf Mandarin dari Warna).</FieldDescription>
           <div className="grid grid-cols-3 gap-4">
             <Field>
               <FieldLabel htmlFor="grossKg">Kg kotor</FieldLabel>
@@ -122,6 +128,7 @@ export default function ProductsPage() {
               type,
               size,
               colour: [colourId, colourZh].filter(Boolean).join(" "),
+              colourZh,
               grossKg: toNumber(gross),
               tubeKg: toNumber(tube),
               netKg: toNumber(netKg),

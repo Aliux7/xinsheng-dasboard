@@ -49,7 +49,10 @@ export type Product = MasterRecord & {
   type: string
   /** e.g. 4x50m */
   size: string
+  /** As typed, e.g. "Biru 蓝"; the Indonesian part (no Chinese characters) prints on Indonesian documents. */
   colour: string
+  /** Chinese colour for the Chinese delivery summary, e.g. "棕银 BrS". Optional; else the Chinese part of `colour`. */
+  colourZh?: string
   grossKg: number | null
   tubeKg: number | null
   netKg: number | null
@@ -146,6 +149,12 @@ export type Customer = MasterRecord & {
   paymentDays: number | null
   /** Rp; null = no limit. */
   creditLimit: number | null
+  /** Delivery defaults (Surat jalan); older records may not have them. */
+  recipientName?: string
+  recipientAddress?: string
+  recipientPhone?: string
+  /** Area in Chinese for the Chinese delivery summary (地址), e.g. "泗水 SBY". */
+  areaZh?: string
 }
 
 /** Every stock change. A document can write several (e.g. washing: used, shrinkage, produced). */
@@ -533,19 +542,39 @@ export const SALES_ACCOUNTS = {
 export type SalesLine = {
   /** Product code (Item penjualan), or "" for free text. */
   product: string
+  /** Printed name, e.g. "TERPAL A3B 2x100m BROWN / SILVER (20,5 Kg)". */
   description: string
   /** Rolls. */
   qty: number
   unit: string
   price: number
   amount: number
+  /** Delivery note (DO number) this line bills, when invoiced from a delivery note. */
+  delivery?: string
 }
 
-/** Sales invoice (Faktur penjualan, INV/…). */
+/** Sales invoice status; "cancelled" only for sales (reversed, delivery notes back to not invoiced). */
+export const SALES_STATUS = { ...INVOICE_STATUS, cancelled: "Dibatalkan" } as const
+export type SalesStatus = keyof typeof SALES_STATUS
+
+export const PAYMENT_METHODS = { cash: "Cash", transfer: "Transfer" } as const
+export type PaymentMethod = keyof typeof PAYMENT_METHODS
+
+/** Bank account customers pay into (Pengaturan → Rekening penerima): `receivingAccounts/{REK0001…}`. */
+export const RECEIVING_ACCOUNTS = "receivingAccounts"
+export type ReceivingAccount = MasterRecord & {
+  bank: string
+  accountNo: string
+  holder: string
+  /** Branch / city, printed as ALAMAT. */
+  branch: string
+}
+
+/** Sales invoice (Faktur penjualan). Stock leaves only through its delivery notes. */
 export const SALES_INVOICES = "salesInvoices"
 export type SalesInvoice = {
   id: string
-  /** INV/26J00001 */
+  /** YYMMDDNNN, e.g. 250421005 (older invoices: INV/26J00001). */
   number: string
   customer: string
   customerName: string
@@ -563,10 +592,93 @@ export type SalesInvoice = {
   payments: { date: string; amount: number; paymentId: string; number: string }[]
   paid: number
   remaining: number
-  status: InvoiceStatus
+  status: SalesStatus
   journalId: string
-  /** Cost of the rolls sold, posted to COGS (Phase 9.5). */
+  /** Cost of the rolls sold (from the delivery notes), posted to COGS. */
   cogs: number
+  /** Delivery notes billed (ids and DO numbers); a direct invoice has the one it created. Older invoices: none. */
+  deliveries?: string[]
+  deliveryNumbers?: string[]
+  /** "deliveries" = Dari surat jalan, "direct" = Faktur langsung. */
+  mode?: "deliveries" | "direct"
+  paymentMethod?: PaymentMethod
+  /** Copy of the receiving account at the time of the invoice, for printing. */
+  bankAccount?: Omit<ReceivingAccount, "id" | "active"> | null
+  cancelReason?: string
+  cancelledBy?: { email: string | null }
+}
+
+/** Delivery note (Surat jalan, DO-YYMMDDNNN): lowers finished-goods stock; billed by one sales invoice. */
+export const DELIVERIES = "deliveries"
+export const DELIVERY_STATUS = { open: "Belum difakturkan", invoiced: "Sudah difakturkan", cancelled: "Dibatalkan" } as const
+export type DeliveryStatus = keyof typeof DELIVERY_STATUS
+export type DeliveryLine = {
+  /** Product code (Item penjualan). */
+  product: string
+  /** Printed names, copied from the product when saved: "TERPAL A3B 2x100m BROWN / SILVER (20,5 Kg)" / "灰布 A3B 2x100m 棕银 BrS 20,5 Kg". */
+  description: string
+  descriptionZh: string
+  qty: number
+  /** Default ROLL. */
+  unit: string
+  /** Sticker / brand (唛头). */
+  sticker: string
+  /** Product kg per roll when saved. */
+  rollNetKg: number
+  rollGrossKg: number
+  /** qty × kg per roll. */
+  netKg: number
+  grossKg: number
+  /** Truck-scale weight for this line (地磅重), optional. */
+  scaleKg: number | null
+  /** Finished-goods cost taken out of stock (average cost); put back if cancelled. */
+  cost: number
+}
+export type Delivery = {
+  id: string
+  /** DO-YYMMDDNNN, e.g. DO-251120009 */
+  number: string
+  /** YYYY-MM-DD */
+  date: string
+  customer: string
+  customerName: string
+  /** Destination city (Dikirim ke) and recipient; default from the customer. */
+  destination: string
+  recipientName: string
+  recipientAddress: string
+  recipientPhone: string
+  plate: string
+  container: string
+  driver: string
+  driverPhone: string
+  lines: DeliveryLine[]
+  totalQty: number
+  totalNet: number
+  totalGross: number
+  /** Sum of the lines' scale weights; null when none was entered. */
+  totalScale: number | null
+  /** Scale − gross, over the lines that have a scale weight. */
+  overweight: number | null
+  cost: number
+  status: DeliveryStatus
+  invoiceId: string
+  invoiceNumber: string
+  cancelReason: string
+  cancelledBy: { email: string | null } | null
+}
+
+/** Company settings (Pengaturan): `settings/company`. */
+export const SETTINGS = "settings"
+export const COMPANY_SETTINGS = "company"
+export type CompanySettings = {
+  /** Letterhead (kop surat) on printed documents. */
+  name: string
+  address: string
+  phone: string
+  email: string
+  taxNumber: string
+  /** For pre-printed paper: print documents without the letterhead. */
+  noLetterhead: boolean
 }
 
 /** Customer payment (Penerimaan piutang). */

@@ -22,13 +22,13 @@ service cloud.firestore {
     // changes and records are deactivated, never deleted. Add new ones here.
     function isMaster(col) { return col in ["suppliers", "departments", "materials", "products",
                                   "accounts", "reportLines", "purchaseItems",
-                                  "clothGrades", "looms", "customers"]; }
+                                  "clothGrades", "looms", "customers", "receivingAccounts"]; }
 
     // Collections with their own rules below; the catch-all must not open them up.
     function reserved(col) { return col in ["logs", "users", "periods", "imports", "rolls", "loomPeriods",
                                   "journals", "accountingPeriods", "bankRecs",
                                   "purchaseInvoices", "importPurchases", "supplierPayments",
-                                  "salesInvoices", "customerReceipts", "vatPeriods",
+                                  "salesInvoices", "customerReceipts", "vatPeriods", "deliveries", "settings",
                                   "fgProductions", "inventoryPostings", "weighings", "stockCounts",
                                   "stockMovements", "processings", "usages"]; }
 
@@ -138,12 +138,35 @@ service cloud.firestore {
       allow create, update: if canClose();
     }
 
-    // Sales invoices: created with their journal; afterwards only receipts change them.
+    // Sales invoices: created with their journal; afterwards only receipts change them,
+    // or a cancellation while nothing is paid (its journal is reversed in the same transaction).
     match /salesInvoices/{id} {
       allow read: if signedIn();
       allow create: if signedIn() && openAccounting(request.resource.data.date) && vatOpen(request.resource.data.date);
-      allow update: if signedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["payments", "paid", "remaining", "status"]);
+      allow update: if signedIn() && resource.data.status != "cancelled" && ((request.resource.data.status != "cancelled"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["payments", "paid", "remaining", "status"]))
+        || (resource.data.paid == 0 && request.resource.data.status == "cancelled"
+          && openAccounting(resource.data.date) && vatOpen(resource.data.date)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "remaining", "cancelReason", "cancelledBy"])));
+    }
+
+    // Delivery notes (Surat jalan): never edited or deleted. Only billed by an invoice (and back when the
+    // invoice is cancelled), or cancelled while not invoiced, in an open warehouse month.
+    match /deliveries/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && openMonth(request.resource.data.date)
+        && request.resource.data.status in ["open", "invoiced"];
+      allow update: if signedIn() && (
+        (resource.data.status in ["open", "invoiced"] && request.resource.data.status in ["open", "invoiced"]
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "invoiceId", "invoiceNumber"]))
+        || (resource.data.status == "open" && request.resource.data.status == "cancelled" && openMonth(resource.data.date)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "cancelReason", "cancelledBy"])));
+    }
+
+    // Company settings (letterhead): Admin (and Master/Developer) only.
+    match /settings/{id} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin();
     }
     match /customerReceipts/{id} {
       allow read: if signedIn();

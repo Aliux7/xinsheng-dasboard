@@ -118,30 +118,33 @@ export function saveJournal(input: EntryInput) {
 
 /** "Buat jurnal balik": a new manual entry with debit and credit swapped. */
 export function reverseJournal(original: Journal, date: string) {
-  return transaction(async (w) => {
-    const current = await w.get<Journal>(JOURNALS, original.id)
-    if (current?.reversedBy) throw new Error(`${original.number} sudah dibalik.`)
-    await ensureAccountingOpen(w, original.date)
-    const reversal = await post(
-      w,
-      {
-        date,
-        source: "manual",
-        counterparty: original.counterparty,
-        description: `Jurnal balik ${original.number}${original.description ? `: ${original.description}` : ""}`,
-        // Swap sides; the reversal is dated on its own date, so per-line import dates are dropped.
-        lines: original.lines.map((l) => {
-          const swapped = { ...l, debit: l.credit, credit: l.debit }
-          delete swapped.date
-          return swapped
-        }),
-      },
-      (w) => jvNumber(w, date),
-      { reverses: original.id }
-    )
-    await w.update(JOURNALS, original.id, { reversedBy: reversal.id })
-    return reversal
-  })
+  return transaction((w) => reverseIn(w, original, date))
+}
+
+/** Reversal inside an open transaction, e.g. when a document is cancelled; `extra` links it (e.g. `document`). */
+export async function reverseIn(w: Writer, original: Journal, date: string, extra: Partial<Journal> = {}) {
+  const current = await w.get<Journal>(JOURNALS, original.id)
+  if (current?.reversedBy) throw new Error(`${original.number} sudah dibalik.`)
+  await ensureAccountingOpen(w, original.date)
+  const reversal = await post(
+    w,
+    {
+      date,
+      source: "manual",
+      counterparty: original.counterparty,
+      description: `Jurnal balik ${original.number}${original.description ? `: ${original.description}` : ""}`,
+      // Swap sides; the reversal is dated on its own date, so per-line import dates are dropped.
+      lines: original.lines.map((l) => {
+        const swapped = { ...l, debit: l.credit, credit: l.debit }
+        delete swapped.date
+        return swapped
+      }),
+    },
+    (w) => jvNumber(w, date),
+    { reverses: original.id, ...extra }
+  )
+  await w.update(JOURNALS, original.id, { reversedBy: reversal.id })
+  return reversal
 }
 
 /** Bank quick entry: money in (BBM) or out (BBK), bank account vs one contra account. */

@@ -86,8 +86,8 @@ Each user has `users/{uid}.role`:
 |---|---|
 | `developer` | Everything; can change Master, Admin and Staff. Nobody can change a Developer |
 | `master` | Everything; can change Admin and Staff |
-| `admin` | Approve stock-count differences, large payments and weighing differences; close and reopen periods; run imports |
-| *(empty)* — Staff | All normal pages |
+| `admin` | Approve stock-count differences, large payments and weighing differences; close and reopen periods; run imports; edit the letterhead (Pengaturan) |
+| *(empty)* — Staff | All normal pages, incl. delivery notes, invoices, cancelling them, and the receiving bank-account list |
 
 The **first Developer** must be set by hand: Firestore → `users` → your document (your UID) → add field `role` = `developer`. After that, roles are managed from **Admin → Pengguna**.
 
@@ -123,7 +123,7 @@ Map materials in **Biaya & produksi → Pemetaan kode bahan** (warehouse BB code
 
 ## Modules and pages
 
-45 pages in 11 sidebar sections (plus Login).
+47 pages in 11 sidebar sections (plus Login).
 
 | Section | Page | Route | Purpose |
 |---|---|---|---|
@@ -134,7 +134,7 @@ Map materials in **Biaya & produksi → Pemetaan kode bahan** (warehouse BB code
 | | Departemen | `/departments` | Departments (Extruder, Laminasi, …) |
 | | Tipe kain & mesin loom | `/looms` | Cloth grades (g/m² standard) and loom machines |
 | | Item penjualan | `/products` | Products (type, size, colour, net kg, price) |
-| | Pelanggan | `/customers` | Customers (terms, credit limit) |
+| | Pelanggan | `/customers` | Customers (terms, credit limit, delivery defaults, Chinese area) |
 | Gudang | Timbangan masuk | `/weighings` | Truck weighing in/out; net added to stock |
 | | Cuci & recycle | `/processings` | Washing / recycling; shrinkage |
 | | Pemakaian bahan | `/usage` | Material used by department and shift |
@@ -157,7 +157,8 @@ Map materials in **Biaya & produksi → Pemetaan kode bahan** (warehouse BB code
 | | Pembelian impor | `/import-purchases` | Import (PIB) + journal |
 | | Pembayaran utang | `/supplier-payments` | Supplier payments; approval above the limit |
 | | Umur utang | `/payables-aging` | Payables aging, checked against the ledger |
-| Penjualan | Faktur penjualan | `/sales-invoices` | Sales invoice + journal; credit-limit warning |
+| Penjualan | Surat jalan | `/deliveries` | Delivery notes (DO-YYMMDDNNN): finished goods out, truck weights, cancel; "Belum difakturkan" by customer with age; print PDF / Excel (SJ-IND layout) |
+| | Faktur penjualan | `/sales-invoices` | Sales invoice (YYMMDDNNN) from delivery notes or direct (auto delivery note) + journal; payment info; cancel; print PDF / Excel (FAKTUR layout) |
 | | Penerimaan piutang | `/customer-receipts` | Customer receipts |
 | | Umur piutang & penjualan | `/receivables` | Receivables aging and sales list (tabs) |
 | Pajak | Rekap PPN bulanan | `/vat` | Monthly VAT summary; mark reported |
@@ -172,6 +173,7 @@ Map materials in **Biaya & produksi → Pemetaan kode bahan** (warehouse BB code
 | Admin | Pengguna | `/users` | Users and roles |
 | | Riwayat perubahan | `/logs` | Every change, who and when |
 | | Impor data | `/imports` | The four one-time history imports |
+| | Pengaturan | `/settings` | Letterhead for printed documents (Admin), "print without letterhead", receiving bank accounts |
 
 ---
 
@@ -181,7 +183,9 @@ The rules below are the essentials; `AGENTS.md` has the full list for developers
 
 - **Every write is logged.** All writes go through `lib/db.ts` (`addRecord`, `updateRecord`, `transaction`). Each change is stored with its before/after values in `logs`, shown on **Riwayat perubahan**.
 - **All-or-nothing saves.** A document and everything it affects (stock, journal, counters) are saved in one Firestore transaction.
-- **Document numbers** follow the company format: `PREFIX/YY` + month letter (A = Jan … L = Dec) + 5 digits, e.g. `TM/26J00001`. Bank vouchers use `BBM.26.10.0001` / `BBK.…` per bank; manual journals use `JV-0001/X/26`.
+- **Document numbers** follow the company format: `PREFIX/YY` + month letter (A = Jan … L = Dec) + 5 digits, e.g. `TM/26J00001`. Bank vouchers use `BBM.26.10.0001` / `BBK.…` per bank; manual journals use `JV-0001/X/26`. Delivery notes and sales invoices keep the client's Excel numbering: date + 3-digit daily sequence, `DO-251120009` and `250421005`.
+- **Sales:** finished goods leave stock only on a delivery note (Surat jalan). An invoice bills one or more of a customer's delivery notes, or ("Faktur langsung") creates its delivery note in the same save. Cancelling an unpaid invoice reverses its journal and puts its delivery notes back to "Belum difakturkan"; a delivery note can be cancelled only while not invoiced, which returns the stock.
+- **Printing:** delivery notes and invoices print on A4 (browser "Save as PDF") and download as Excel from the same layout, following sheets SJ-IND and FAKTUR of `STOCK TERPAL` with the letterhead from Pengaturan.
 - **Stock** changes only through stock movements (`lib/stock.ts`), never typed in, and never below zero.
 - **Money** moves only through balanced journal entries (`lib/journal.ts`). Saved entries are never edited; mistakes are fixed with a reversal entry.
 - **Locks:** warehouse months (`periods`), loom months (`loomPeriods`), accounting months (`accountingPeriods`) and reported VAT months (`vatPeriods`) each lock the documents dated in them.

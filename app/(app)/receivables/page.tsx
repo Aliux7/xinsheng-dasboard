@@ -23,7 +23,7 @@ export default function ReceivablesPage() {
       </TabsList>
       <TabsContent value="aging" className="flex flex-col gap-4">
         <AgingPage
-          docs={invoices.data.map((i) => ({ id: i.id, number: i.number, party: i.customer, partyName: i.customerName, date: i.date, dueDate: i.dueDate, total: i.total, payments: i.payments }))}
+          docs={invoices.data.filter((i) => i.status !== "cancelled").map((i) => ({ id: i.id, number: i.number, party: i.customer, partyName: i.customerName, date: i.date, dueDate: i.dueDate, total: i.total, payments: i.payments }))}
           loading={invoices.loading}
           accounts={[SALES_ACCOUNTS.receivable, SALES_ACCOUNTS.receivableUsd]}
           sign={1}
@@ -45,7 +45,7 @@ function SalesList() {
   const { month, setMonth, where, skip } = useMonth()
   const invoices = useCollection<SalesInvoice>(SALES_INVOICES, { where, skip })
   const rows = new Map<string, Row>()
-  for (const inv of invoices.data) {
+  for (const inv of invoices.data.filter((i) => i.status !== "cancelled")) {
     for (const l of inv.lines) {
       const key = `${inv.customerName}|${l.description}`
       const share = inv.dpp ? l.amount / inv.dpp : 0
