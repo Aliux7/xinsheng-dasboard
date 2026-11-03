@@ -12,15 +12,14 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
 import {
   ACCOUNTS,
-  BANKS,
   CUSTOMERS,
   CUSTOMER_RECEIPTS,
   SALES_INVOICES,
   type Account,
-  type BankId,
   type Customer,
   type CustomerReceipt,
   type SalesInvoice,
@@ -36,12 +35,13 @@ export default function CustomerReceiptsPage() {
   const { month, setMonth, where, skip } = useMonth()
   const receipts = useCollection<CustomerReceipt>(CUSTOMER_RECEIPTS, { where, skip })
 
+  const allBanks = useBanks().all
   const columns: Column<CustomerReceipt>[] = [
     { header: "No. bukti", cell: (r) => <span className="font-medium">{r.number}</span> },
     { header: "Tanggal", cell: (r) => formatDay(r.date) },
     { header: "Pelanggan", cell: (r) => <span className="whitespace-normal">{r.customerName}</span> },
     { header: "Faktur", cell: (r) => <span className="text-xs whitespace-normal">{r.allocations.map((a) => `${a.number} ${formatNumber(a.amount)}`).join(", ")}</span>, className: "hidden lg:table-cell" },
-    { header: "Bank", cell: (r) => BANKS.find((b) => b.id === r.bank)?.name, className: "hidden md:table-cell" },
+    { header: "Bank", cell: (r) => allBanks.find((b) => b.code === r.bank)?.name ?? r.bank, className: "hidden md:table-cell" },
     { header: "Diterima", cell: (r) => formatNumber(r.received), className: "text-right font-medium tabular-nums" },
     { header: "Selisih", cell: (r) => (r.difference ? formatNumber(r.difference) : ""), className: "text-right tabular-nums" },
   ]
@@ -73,7 +73,9 @@ function ReceiptForm({ customer, accounts }: { customer: Customer; accounts: Acc
   const open = invoices.data.filter((i) => i.remaining > 0.005).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   const [amounts, setAmounts] = useState<Record<string, number | null>>({})
   const [received, setReceived] = useState<number | null>(null)
-  const [bank, setBank] = useState<BankId>("bca1")
+  const { banks } = useBanks()
+  const [bankPick, setBank] = useState<string | null>(null)
+  const bank = bankPick ?? banks[0]?.code ?? ""
   const [date, setDate] = useState(today)
   const [reference, setReference] = useState("")
   const [differenceAccount, setDifferenceAccount] = useState("")
@@ -132,7 +134,7 @@ function ReceiptForm({ customer, accounts }: { customer: Customer; accounts: Acc
       <div className="grid gap-3 sm:grid-cols-4">
         <Field>
           <FieldLabel htmlFor="bank">Ke bank</FieldLabel>
-          <SimpleSelect id="bank" value={bank} onChange={(b) => setBank(b as BankId)} options={BANKS.map((b) => ({ value: b.id, label: b.name }))} />
+          <SimpleSelect id="bank" value={bank} onChange={setBank} options={banks.map((b) => ({ value: b.code, label: b.name }))} required />
         </Field>
         <Field>
           <FieldLabel htmlFor="date">Tanggal</FieldLabel>

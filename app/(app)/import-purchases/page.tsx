@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
-import { ACCOUNTS, BANKS, IMPORT_PURCHASES, JOURNALS, PURCHASE_ACCOUNTS, type Account, type BankId, type ImportPurchase, type Journal } from "@/lib/collections"
+import { ACCOUNTS, IMPORT_PURCHASES, JOURNALS, PURCHASE_ACCOUNTS, type Account, type ImportPurchase, type Journal } from "@/lib/collections"
 import { importTotals, saveImportPurchase, type ImportInput } from "@/lib/purchase"
 import { formatDay, formatNumber, today } from "@/lib/utils"
 
@@ -88,12 +89,14 @@ function ImportForm({ accounts, onDone }: { accounts: Account[]; onDone: () => v
     ntpn: "",
     goodsAccount: "",
     payableAccount: PURCHASE_ACCOUNTS.payableUsd,
-    bank: "bca1",
+    bank: "",
     differenceAccount: "",
   }))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const set = (patch: Partial<ImportInput>) => setF((x) => ({ ...x, ...patch }))
+  const { banks } = useBanks()
+  const bank = f.bank || banks[0]?.code || ""
   const t = importTotals(f)
   const text = (key: keyof ImportInput, label: string, props: React.ComponentProps<typeof Input> = {}) => (
     <Field>
@@ -113,7 +116,7 @@ function ImportForm({ accounts, onDone }: { accounts: Account[]; onDone: () => v
     if (!f.goodsAccount) return setError("Pilih akun barang (persediaan atau aset).")
     setSaving(true)
     try {
-      const number = await saveImportPurchase(f)
+      const number = await saveImportPurchase({ ...f, bank })
       toast.success(`Impor pembelian ${number} disimpan.`)
       onDone()
     } catch (err) {
@@ -172,7 +175,7 @@ function ImportForm({ accounts, onDone }: { accounts: Account[]; onDone: () => v
           </Field>
           <Field>
             <FieldLabel htmlFor="bank">Pajak dibayar dari</FieldLabel>
-            <SimpleSelect id="bank" value={f.bank} onChange={(b) => set({ bank: b as BankId })} options={BANKS.map((b) => ({ value: b.id, label: b.name }))} />
+            <SimpleSelect id="bank" value={bank} onChange={(b) => set({ bank: b })} options={banks.map((b) => ({ value: b.code, label: b.name }))} required />
           </Field>
         </div>
         {t.difference !== 0 && (

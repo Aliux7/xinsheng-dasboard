@@ -201,6 +201,7 @@ export function saveReceipt(form: ReceiptInput) {
     const difference = round2(allocated - form.received)
     if (difference && !form.differenceAccount) throw new Error("Ada selisih; pilih akun selisih (mis. biaya bank).")
     const invoices = await Promise.all(allocations.map((a) => w.get<SalesInvoice>(SALES_INVOICES, a.invoice)))
+    const bankAccount = (await bankOf(w, form.bank)).account
     const id = w.newId(CUSTOMER_RECEIPTS)
     const number = await bankNumber(w, form.bank, "BBM", form.date)
 
@@ -226,7 +227,7 @@ export function saveReceipt(form: ReceiptInput) {
         counterparty: form.customerName,
         description: text,
         lines: [
-          jl(bankOf(form.bank).account, form.received, 0, text, form.reference),
+          jl(bankAccount, form.received, 0, text, form.reference),
           ...(difference ? [jl(form.differenceAccount, difference > 0 ? difference : 0, difference < 0 ? -difference : 0, "Selisih penerimaan")] : []),
           jl(ACC.receivable, 0, allocated, text),
         ],

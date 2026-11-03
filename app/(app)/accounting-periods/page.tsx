@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
 import { useToday } from "@/hooks/use-today"
-import { ACCOUNTING_PERIODS, BANKS, BANK_RECS, JOURNALS, type AccountingPeriod, type BankRec, type Journal } from "@/lib/collections"
+import { ACCOUNTING_PERIODS, BANK_RECS, JOURNALS, type AccountingPeriod, type BankRec, type Journal } from "@/lib/collections"
 import { closeAccountingMonth, reopenAccountingMonth, round2 } from "@/lib/journal"
 import { previousMonth } from "@/lib/report"
 import { formatDate, monthRange } from "@/lib/utils"
@@ -106,12 +107,13 @@ function Checklist({ month, onDone }: { month: string; onDone: () => void }) {
   const [start, end] = monthRange(month)
   const journals = useCollection<Journal>(JOURNALS, { where: [["date", ">=", start], ["date", "<", end]] })
   const recs = useCollection<BankRec>(BANK_RECS).data
+  const { all: banks } = useBanks()
   const [busy, setBusy] = useState(false)
 
   const debit = round2(journals.data.reduce((s, j) => s + j.totalDebit, 0))
   const credit = round2(journals.data.reduce((s, j) => s + j.totalCredit, 0))
   const unbalanced = journals.data.filter((j) => !j.balanced)
-  const activeBanks = BANKS.filter((b) => journals.data.some((j) => j.accounts.includes(b.account)))
+  const activeBanks = banks.filter((b) => journals.data.some((j) => j.accounts.includes(b.account)))
   const notReconciled = activeBanks.filter((b) => !recs.find((r) => r.id === `${b.id}-${month}`)?.reconciled)
 
   const checks = [

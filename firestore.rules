@@ -22,7 +22,7 @@ service cloud.firestore {
     // changes and records are deactivated, never deleted. Add new ones here.
     function isMaster(col) { return col in ["suppliers", "departments", "materials", "products",
                                   "accounts", "reportLines", "purchaseItems",
-                                  "clothGrades", "looms", "customers", "receivingAccounts"]; }
+                                  "clothGrades", "looms", "customers", "receivingAccounts", "banks"]; }
 
     // Collections with their own rules below; the catch-all must not open them up.
     function reserved(col) { return col in ["logs", "users", "periods", "imports", "rolls", "loomPeriods",

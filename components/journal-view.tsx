@@ -7,8 +7,9 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { BANKS, JOURNAL_SOURCES, type Account, type Journal } from "@/lib/collections"
-import { reverseJournal } from "@/lib/journal"
+import { useBanks } from "@/hooks/use-banks"
+import { type Account, type Journal } from "@/lib/collections"
+import { reverseJournal, sourceLabel } from "@/lib/journal"
 import { formatDay, formatNumber, today } from "@/lib/utils"
 
 const money = (n: number) => (n ? formatNumber(n) : "")
@@ -30,7 +31,8 @@ const editableHere = (j: Journal) => j.source === "manual" || j.source === "gl"
 /** One journal entry: header, lines with account names, totals, and its action. */
 export function JournalView({ journal: j, accounts }: { journal: Journal; accounts: Account[] }) {
   const name = (code: string) => accounts.find((a) => a.code === code)?.nameId ?? ""
-  const bank = BANKS.find((b) => b.id === j.source)
+  const { all: banks } = useBanks()
+  const bank = banks.find((b) => b.code === j.source)
 
   async function reverse() {
     const date = prompt(`Tanggal jurnal balik untuk ${j.number} (YYYY-MM-DD):`, today())
@@ -45,7 +47,7 @@ export function JournalView({ journal: j, accounts }: { journal: Journal; accoun
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/40 px-3 py-2 text-sm">
         <span className="font-semibold">{j.number || "—"}</span>
         <span className="text-muted-foreground">{formatDay(j.date)}</span>
-        <Badge variant="outline">{JOURNAL_SOURCES[j.source]}</Badge>
+        <Badge variant="outline">{sourceLabel(j.source, banks)}</Badge>
         {!j.balanced && <Badge variant="destructive">Tidak seimbang</Badge>}
         {j.reverses && <Badge variant="secondary">Jurnal balik</Badge>}
         {j.reversedBy && <Badge variant="secondary">Sudah dibalik</Badge>}

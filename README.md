@@ -166,14 +166,14 @@ Map materials in **Biaya & produksi → Pemetaan kode bahan** (warehouse BB code
 | Akuntansi | Daftar akun | `/accounts` | Chart of accounts |
 | | Baris laporan | `/report-lines` | Balance-sheet / P&L lines (NR.., LR..) |
 | | Jurnal umum | `/journal` | General journal; reversal entries |
-| | Buku bank | `/bank` | Bank books, quick entry, transfers, reconciliation |
+| | Buku bank | `/bank` | Bank books, quick entry, bank statement (mutasi) import, transfers, reconciliation |
 | | Buku besar | `/ledger` | General ledger per account |
 | | Neraca saldo | `/trial-balance` | Trial balance |
 | | Tutup periode akuntansi | `/accounting-periods` | Close / reopen accounting months |
 | Admin | Pengguna | `/users` | Users and roles |
 | | Riwayat perubahan | `/logs` | Every change, who and when |
 | | Impor data | `/imports` | The four one-time history imports |
-| | Pengaturan | `/settings` | Letterhead for printed documents (Admin), "print without letterhead", receiving bank accounts |
+| | Pengaturan | `/settings` | Letterhead for printed documents (Admin), "print without letterhead", banks (Buku bank, payments, receipts), receiving bank accounts |
 
 ---
 
@@ -199,7 +199,7 @@ The rules below are the essentials; `AGENTS.md` has the full list for developers
 
 | Purpose | Account |
 |---|---|
-| Bank BCA 1 PT / BCA 2 (Nining Rahayu) / BCA 3 | 101201 / 101202 / 101203 |
+| Banks | per bank, set in Pengaturan → Bank (`banks`) |
 | Trade receivable IDR / USD | 103101 / 103102 |
 | Raw material / WIP / finished goods | 105101 / 105201 / 105301 |
 | VAT in / PPh 22 prepaid (import) | 107001 / 107005 |

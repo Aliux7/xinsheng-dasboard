@@ -133,10 +133,10 @@ export function saveImportPurchase(form: ImportInput) {
     await ensureVatOpen(w, form.pibDate)
     const { customsValueRp, payable, totalTax, difference } = importTotals(form)
     if (difference && !form.differenceAccount) throw new Error("Pilih akun untuk selisih nilai pabean dan invoice × kurs.")
+    const bank = (await bankOf(w, form.bank)).account
     const id = w.newId(IMPORT_PURCHASES)
     const number = await nextNumber(w, "PIB", form.pibDate)
     const text = `PIB ${form.nopen} ${form.goods}`.trim()
-    const bank = bankOf(form.bank).account
 
     const journal = await post(
       w,
@@ -168,6 +168,7 @@ export function saveImportPurchase(form: ImportInput) {
 async function postPayment(w: Writer, id: string, payment: Omit<SupplierPayment, "id">) {
   await ensureAccountingOpen(w, payment.date)
   const invoices = await Promise.all(payment.allocations.map((a) => w.get<PurchaseInvoice>(PURCHASE_INVOICES, a.invoice)))
+  const bankAccount = (await bankOf(w, payment.bank)).account
   const number = await bankNumber(w, payment.bank, "BBK", payment.date)
   const byAccount = new Map<string, number>()
 
@@ -195,7 +196,7 @@ async function postPayment(w: Writer, id: string, payment: Omit<SupplierPayment,
       source: payment.bank,
       counterparty: payment.supplierName,
       description: text,
-      lines: [...[...byAccount].map(([account, amount]) => jl(account, amount, 0, text)), jl(bankOf(payment.bank).account, 0, payment.total, text)],
+      lines: [...[...byAccount].map(([account, amount]) => jl(account, amount, 0, text)), jl(bankAccount, 0, payment.total, text)],
     },
     async () => number,
     { document: { type: "supplierPayment", id, number } }

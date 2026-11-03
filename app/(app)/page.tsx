@@ -8,11 +8,11 @@ import { Bars, Donut } from "@/components/mini-charts"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
 import { useToday } from "@/hooks/use-today"
 import {
   ACCOUNTS,
-  BANKS,
   CONDITIONS,
   DELIVERIES,
   JOURNALS,
@@ -71,9 +71,10 @@ export default function DashboardPage() {
   const notInvoiced = useCollection<Delivery>(DELIVERIES, { where: [["status", "==", "open"]] }).data
   const journalsMonth = useCollection<Journal>(JOURNALS, { where: [["date", ">=", start], ["date", "<", end]], skip: !month }).data
   const accounts = useCollection<Account>(ACCOUNTS).data
-  const bank1 = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains", BANKS[0].account]] }).data
-  const bank2 = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains", BANKS[1].account]] }).data
-  const bank3 = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains", BANKS[2].account]] }).data
+  const activeBanks = useBanks().banks
+  // One query for every active bank (array-contains-any takes up to 30 values).
+  const bankAccounts = [...new Set(activeBanks.map((b) => b.account).filter(Boolean))].slice(0, 30)
+  const bankJournals = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains-any", bankAccounts]], skip: !bankAccounts.length }).data
   // Trends: 12 months of sales and purchases, 30 days of stock in/out.
   const months = month ? lastMonths(month, 12) : []
   const yearStart = months[0] ? `${months[0]}-01` : ""
@@ -94,7 +95,7 @@ export default function DashboardPage() {
     .map((g) => ({ grade: g, count: rolls.filter((r) => r.grade === g).length, kg: round2(rolls.filter((r) => r.grade === g).reduce((s, r) => s + r.kg, 0)) }))
   const balanceOf = (journals: Journal[], account: string) =>
     round2(journals.reduce((s, j) => s + j.lines.filter((l) => l.account === account).reduce((t, l) => t + l.debit - l.credit, 0), 0))
-  const banks = [bank1, bank2, bank3].map((js, i) => ({ ...BANKS[i], balance: balanceOf(js, BANKS[i].account) }))
+  const banks = activeBanks.map((b) => ({ ...b, balance: balanceOf(bankJournals, b.account) }))
   const dueSoon = payables.filter((i) => today && i.dueDate <= addDays(today, 7))
   const overdue = receivables.filter((i) => today && i.dueDate < today)
   const sales = round2(salesMonth.reduce((s, i) => s + i.dpp, 0))
@@ -153,7 +154,7 @@ export default function DashboardPage() {
     const end = `${m}-31`
     return {
       label: monthLabel(m),
-      total: round2([bank1, bank2, bank3].reduce((s, js, i) => s + balanceOf(js.filter((j) => j.date <= end), BANKS[i].account), 0)),
+      total: round2(banks.reduce((s, b) => s + balanceOf(bankJournals.filter((j) => j.date <= end), b.account), 0)),
     }
   })
 

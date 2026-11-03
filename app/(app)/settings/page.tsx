@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { useIsAdmin } from "@/components/auth-provider"
+import { AccountSelect } from "@/components/account-select"
 import { MasterPage } from "@/components/master-page"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,13 +12,27 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { useCollection } from "@/hooks/use-collection"
+import { useBanks } from "@/hooks/use-banks"
 import { useCompany } from "@/hooks/use-company"
-import { COMPANY_SETTINGS, RECEIVING_ACCOUNTS, SETTINGS, type CompanySettings, type ReceivingAccount } from "@/lib/collections"
+import {
+  ACCOUNTS,
+  BANKS,
+  COMPANY_SETTINGS,
+  RECEIVING_ACCOUNTS,
+  SETTINGS,
+  type Account,
+  type Bank,
+  type CompanySettings,
+  type ReceivingAccount,
+} from "@/lib/collections"
 import { transaction } from "@/lib/db"
 
 const blankCompany: CompanySettings = { name: "", address: "", phone: "", email: "", taxNumber: "", noLetterhead: false }
 
 const blankAccount: Omit<ReceivingAccount, "id"> = { code: "", bank: "", accountNo: "", holder: "", branch: "", active: true }
+
+const blankBank: Omit<Bank, "id"> = { code: "", name: "", account: "", active: true }
 
 export default function SettingsPage() {
   const { company, loading } = useCompany()
@@ -25,6 +40,7 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-8">
       {/* Remount once loaded so the form starts from the saved values. */}
       {!loading && <LetterheadForm key={company ? "saved" : "new"} saved={company} />}
+      <BankSection />
       <section className="flex flex-col gap-3">
         <div>
           <h2 className="font-semibold">Rekening penerima</h2>
@@ -65,6 +81,68 @@ export default function SettingsPage() {
         />
       </section>
     </div>
+  )
+}
+
+/** Own bank accounts for the Buku bank, payments and receipts; the code is the journal source and never changes. */
+function BankSection() {
+  const accounts = useCollection<Account>(ACCOUNTS).data
+  const { unsaved } = useBanks()
+  const [seeding, setSeeding] = useState(false)
+
+  // Built-in banks (DEFAULT_BANKS) are used until saved; saving them makes them editable here.
+  async function seed() {
+    setSeeding(true)
+    try {
+      await transaction(async (w) => {
+        for (const { id, ...b } of unsaved) await w.set(BANKS, id, b)
+      })
+      toast.success(`Bank bawaan disimpan: ${unsaved.map((b) => b.name).join(", ")}.`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    }
+    setSeeding(false)
+  }
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="font-semibold">Bank</h2>
+        <p className="text-sm text-muted-foreground">
+          Rekening bank perusahaan untuk Buku bank, pembayaran pemasok, penerimaan pelanggan dan pajak impor. Kode dipakai di nomor jurnal dan tidak dapat diubah; bank yang tidak dipakai lagi dinonaktifkan.
+        </p>
+      </div>
+      <MasterPage<Bank>
+        path={BANKS}
+        noun="bank"
+        empty={blankBank}
+        codePlaceholder="BCA4"
+        searchText={(b) => [b.name, b.account]}
+        columns={[
+          { header: "Nama", cell: (b) => b.name },
+          { header: "Akun", cell: (b) => `${b.account} ${accounts.find((a) => a.code === b.account)?.nameId ?? ""}` },
+        ]}
+        toolbar={() =>
+          unsaved.length > 0 && (
+            <Button variant="outline" onClick={seed} disabled={seeding} title={unsaved.map((b) => b.name).join(", ")}>
+              {seeding ? "Menyimpan…" : `Simpan bank bawaan (${unsaved.length})`}
+            </Button>
+          )
+        }
+        fields={(form, set) => (
+          <div className="grid gap-4">
+            <Field>
+              <FieldLabel htmlFor="bank-name">Nama</FieldLabel>
+              <Input id="bank-name" value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="BCA PT 3" required />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="bank-account">Akun (Daftar akun)</FieldLabel>
+              <AccountSelect id="bank-account" value={form.account} onChange={(account) => set({ account })} accounts={accounts} required />
+            </Field>
+          </div>
+        )}
+      />
+    </section>
   )
 }
 

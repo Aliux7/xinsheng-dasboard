@@ -308,25 +308,37 @@ export type Roll = {
 /** Loom defaults ("settings"). */
 export const LOOM_DEFAULTS = { width: 4.13, location: "Lamination/覆膜挺布", destination: "Laminasi" }
 
-/** Journal sources. Only "manual" entries are made on the Jurnal umum page; the others come from their own pages. */
+/**
+ * Journal sources other than banks. Only "manual" and "gl" entries are made on the Jurnal umum page; the
+ * others come from their own pages. A bank entry's source is the bank's code (`banks`); label any source
+ * with `sourceLabel` (lib/journal.ts).
+ */
 export const JOURNAL_SOURCES = {
   manual: "Manual",
-  bca1: "Bank BCA1 PT",
-  bca2: "Bank BCA2 NR",
-  bca3: "Bank BCA3",
   purchase: "Purchase",
   sales: "Sales",
   gl: "General Ledger",
 } as const
-export type JournalSource = keyof typeof JOURNAL_SOURCES
+/** A key of JOURNAL_SOURCES or a bank code. */
+export type JournalSource = keyof typeof JOURNAL_SOURCES | BankId
 
-/** Own bank accounts and their chart-of-accounts number. */
-export const BANKS = [
-  { id: "bca1", account: "101201", name: "BCA 1 PT" },
-  { id: "bca2", account: "101202", name: "BCA 2 a.n. Nining Rahayu" },
-  { id: "bca3", account: "101203", name: "BCA 3" },
-] as const
-export type BankId = (typeof BANKS)[number]["id"]
+/**
+ * Own bank accounts (Pengaturan): `banks/{code}`. The code (e.g. bca1) is the journal source, the
+ * BBM/BBK counter and the bankRecs key, so it never changes; banks are deactivated, never deleted.
+ */
+export const BANKS = "banks"
+export type Bank = MasterRecord & {
+  name: string
+  /** Chart-of-accounts number of the bank (Daftar akun). */
+  account: string
+}
+export type BankId = string
+/** Used while `banks` is still empty (before "Simpan bank bawaan" in Pengaturan). */
+export const DEFAULT_BANKS: Omit<Bank, "id">[] = [
+  { code: "bca1", account: "5060552098", name: "BCA PT 1", active: true },
+  { code: "bca3", account: "8293291177", name: "BCA PT 2", active: true },
+  { code: "bca2", account: "101202", name: "BCA 2 a.n. Nining Rahayu", active: true },
+]
 
 export type JournalLine = {
   /** Account number (Daftar akun). */

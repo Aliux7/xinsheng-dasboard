@@ -4,14 +4,16 @@ import {
   ACCOUNTING_PERIODS,
   BANK_RECS,
   BANKS,
+  DEFAULT_BANKS,
+  JOURNAL_SOURCES,
   JOURNALS,
   type Account,
   type AccountingPeriod,
+  type Bank,
   type BankId,
   type BankRec,
   type Journal,
   type JournalLine,
-  type JournalSource,
 } from "@/lib/collections"
 import { transaction, type Writer } from "@/lib/db"
 import { auth } from "@/lib/firebase"
@@ -23,7 +25,18 @@ export const round2 = (n: number) => Math.round(n * 100) / 100
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
 const pad4 = (n: number) => String(n).padStart(4, "0")
 
-export const bankOf = (id: BankId) => BANKS.find((b) => b.id === id)!
+/** The bank (`banks/{code}`, or the built-in list while it is empty), read inside the transaction. */
+export async function bankOf(w: Writer, id: BankId) {
+  const bank = (await w.get<Bank>(BANKS, id)) ?? DEFAULT_BANKS.find((b) => b.code === id)
+  if (!bank) throw new Error(`Bank ${id} tidak ditemukan.`)
+  if (!bank.account) throw new Error(`Bank ${bank.name} belum punya nomor akun.`)
+  return bank
+}
+
+/** "Manual", "Sales"… or the bank's name for a bank entry. */
+export function sourceLabel(source: string, banks: Pick<Bank, "code" | "name">[]) {
+  return JOURNAL_SOURCES[source as keyof typeof JOURNAL_SOURCES] ?? banks.find((b) => b.code === source)?.name ?? source
+}
 
 export const emptyLine = (): JournalLine => ({
   account: "",
@@ -157,32 +170,34 @@ export function saveBankEntry(input: {
   direction: "in" | "out"
   amount: number
 }) {
-  const bankAccount = bankOf(input.bank).account
   const line = (account: string, debit: number, credit: number) => ({ ...emptyLine(), account, description: input.description, debit, credit })
-  const lines =
-    input.direction === "in"
-      ? [line(bankAccount, input.amount, 0), line(input.contra, 0, input.amount)]
-      : [line(input.contra, input.amount, 0), line(bankAccount, 0, input.amount)]
-  return transaction((w) =>
-    post(w, { date: input.date, source: input.bank as JournalSource, counterparty: input.name, description: input.description, lines }, (w) =>
+  return transaction(async (w) => {
+    const bankAccount = (await bankOf(w, input.bank)).account
+    const lines =
+      input.direction === "in"
+        ? [line(bankAccount, input.amount, 0), line(input.contra, 0, input.amount)]
+        : [line(input.contra, input.amount, 0), line(bankAccount, 0, input.amount)]
+    return post(w, { date: input.date, source: input.bank, counterparty: input.name, description: input.description, lines }, (w) =>
       bankNumber(w, input.bank, input.direction === "in" ? "BBM" : "BBK", input.date)
     )
-  )
+  })
 }
 
 /** Transfer between own banks: one entry, BBK number of the sending bank. */
 export function saveTransfer(input: { from: BankId; to: BankId; date: string; amount: number; description: string }) {
   if (input.from === input.to) throw new Error("Pilih dua rekening bank yang berbeda.")
-  const description = input.description || `Transfer ${bankOf(input.from).name} → ${bankOf(input.to).name}`
-  const lines = [
-    { ...emptyLine(), account: bankOf(input.to).account, description, debit: input.amount },
-    { ...emptyLine(), account: bankOf(input.from).account, description, credit: input.amount },
-  ]
-  return transaction((w) =>
-    post(w, { date: input.date, source: input.from, counterparty: bankOf(input.to).name, description, lines }, (w) =>
+  return transaction(async (w) => {
+    const from = await bankOf(w, input.from)
+    const to = await bankOf(w, input.to)
+    const description = input.description || `Transfer ${from.name} → ${to.name}`
+    const lines = [
+      { ...emptyLine(), account: to.account, description, debit: input.amount },
+      { ...emptyLine(), account: from.account, description, credit: input.amount },
+    ]
+    return post(w, { date: input.date, source: input.from, counterparty: to.name, description, lines }, (w) =>
       bankNumber(w, input.from, "BBK", input.date)
     )
-  )
+  })
 }
 
 /** One journal line with its entry, for ledgers and bank books. */

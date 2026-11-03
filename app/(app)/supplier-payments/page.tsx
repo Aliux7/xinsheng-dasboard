@@ -14,15 +14,14 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
 import {
-  BANKS,
   PAYMENT_APPROVAL_LIMIT,
   PAYMENT_STATUS,
   PURCHASE_INVOICES,
   SUPPLIERS,
   SUPPLIER_PAYMENTS,
-  type BankId,
   type PurchaseInvoice,
   type Supplier,
   type SupplierPayment,
@@ -42,12 +41,13 @@ export default function SupplierPaymentsPage() {
   const waiting = useCollection<SupplierPayment>(SUPPLIER_PAYMENTS, { where: [["status", "==", "pending"]] }).data
   const rows = [...waiting, ...payments.data.filter((p) => p.status !== "pending")].sort((a, b) => b.date.localeCompare(a.date))
 
+  const allBanks = useBanks().all
   const columns: Column<SupplierPayment>[] = [
     { header: "No. bukti", cell: (p) => <span className="font-medium">{p.number || "—"}</span> },
     { header: "Tanggal", cell: (p) => formatDay(p.date) },
     { header: "Pemasok", cell: (p) => <span className="whitespace-normal">{p.supplierName}</span> },
     { header: "Faktur", cell: (p) => <span className="text-xs whitespace-normal">{p.allocations.map((a) => `${a.number} ${formatNumber(a.amount)}`).join(", ")}</span>, className: "hidden lg:table-cell" },
-    { header: "Bank", cell: (p) => BANKS.find((b) => b.id === p.bank)?.name, className: "hidden md:table-cell" },
+    { header: "Bank", cell: (p) => allBanks.find((b) => b.code === p.bank)?.name ?? p.bank, className: "hidden md:table-cell" },
     { header: "Jumlah", cell: (p) => formatNumber(p.total), className: "text-right font-medium tabular-nums" },
     { header: "Status", cell: (p) => <Badge variant={statusVariant[p.status]} title={p.rejectReason || undefined}>{PAYMENT_STATUS[p.status]}</Badge> },
     {
@@ -94,7 +94,9 @@ function PaymentForm({ supplier }: { supplier: Supplier }) {
   const invoices = useCollection<PurchaseInvoice>(PURCHASE_INVOICES, { where: [["supplier", "==", supplier.code]] })
   const open = invoices.data.filter((i) => i.remaining > 0.005).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   const [amounts, setAmounts] = useState<Record<string, number | null>>({})
-  const [bank, setBank] = useState<BankId>("bca1")
+  const { banks } = useBanks()
+  const [bankPick, setBank] = useState<string | null>(null)
+  const bank = bankPick ?? banks[0]?.code ?? ""
   const [date, setDate] = useState(today)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -160,7 +162,7 @@ function PaymentForm({ supplier }: { supplier: Supplier }) {
       <div className="flex flex-wrap items-end gap-3">
         <Field className="w-56">
           <FieldLabel htmlFor="bank">Dari bank</FieldLabel>
-          <SimpleSelect id="bank" value={bank} onChange={(b) => setBank(b as BankId)} options={BANKS.map((b) => ({ value: b.id, label: b.name }))} />
+          <SimpleSelect id="bank" value={bank} onChange={setBank} options={banks.map((b) => ({ value: b.code, label: b.name }))} required />
         </Field>
         <Field className="w-44">
           <FieldLabel htmlFor="date">Tanggal bayar</FieldLabel>

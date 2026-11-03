@@ -2,10 +2,11 @@
 
 import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeftRightIcon } from "lucide-react"
+import { ArrowLeftRightIcon, UploadIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { AccountSelect } from "@/components/account-select"
+import { BankImport } from "@/components/bank-import"
 import { DataTable, type Column } from "@/components/data-table"
 import { JournalDialog } from "@/components/journal-view"
 import { MonthPicker, useMonth } from "@/components/month-picker"
@@ -16,9 +17,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
-import { ACCOUNTS, BANKS, BANK_RECS, JOURNALS, type Account, type BankId, type BankRec, type Journal } from "@/lib/collections"
-import { bankOf, contraOf, linesOf, reconciliation, round2, saveBankEntry, saveBankRec, saveTransfer, type LedgerLine } from "@/lib/journal"
+import { ACCOUNTS, BANK_RECS, JOURNALS, type Account, type Bank, type BankId, type BankRec, type Journal } from "@/lib/collections"
+import { contraOf, linesOf, reconciliation, round2, saveBankEntry, saveBankRec, saveTransfer, type LedgerLine } from "@/lib/journal"
 import { formatDay, formatNumber, monthRange, today } from "@/lib/utils"
 
 type Row = LedgerLine & { id: string; balance: number; total?: string }
@@ -34,14 +36,17 @@ export default function BankPage() {
 
 function BankBook() {
   const router = useRouter()
-  const bank = (useSearchParams().get("bank") as BankId | null) ?? "bca1"
-  const account = bankOf(bank).account
+  const { all: allBanks, banks } = useBanks()
+  const bank = useSearchParams().get("bank") ?? banks[0]?.code ?? ""
+  const current = allBanks.find((b) => b.code === bank)
+  const account = current?.account ?? ""
   const accounts = useCollection<Account>(ACCOUNTS).data
-  const journals = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains", account]] })
+  const journals = useCollection<Journal>(JOURNALS, { where: [["accounts", "array-contains", account]], skip: !account })
   const { month, setMonth } = useMonth()
   const rec = useCollection<BankRec>(BANK_RECS).data.find((r) => r.id === `${bank}-${month}`)
   const [open, setOpen] = useState<Journal | null>(null)
   const [transfer, setTransfer] = useState(false)
+  const [importing, setImporting] = useState(false)
 
   const [start, end] = month ? monthRange(month) : ["", ""]
   const all = linesOf(journals.data, account)
@@ -79,10 +84,14 @@ function BankBook() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="w-full sm:w-72">
-          <SimpleSelect id="bank" value={bank} onChange={(b) => router.replace(`/bank?bank=${b}`)} options={BANKS.map((b) => ({ value: b.id, label: `${b.name} (${b.account})` }))} />
+          <SimpleSelect id="bank" value={bank} onChange={(b) => router.replace(`/bank?bank=${b}`)} options={allBanks.filter((b) => b.active || b.code === bank).map((b) => ({ value: b.code, label: `${b.name} (${b.account})` }))} />
         </div>
         <MonthPicker month={month} setMonth={setMonth} />
-        <Button variant="outline" className="ml-auto" onClick={() => setTransfer(true)}>
+        <Button variant="outline" className="ml-auto" onClick={() => setImporting(true)} disabled={!current || journals.loading}>
+          <UploadIcon />
+          Import mutasi
+        </Button>
+        <Button variant="outline" onClick={() => setTransfer(true)}>
           <ArrowLeftRightIcon />
           Transfer antar bank
         </Button>
@@ -102,8 +111,13 @@ function BankBook() {
       )}
 
       <JournalDialog journal={open} accounts={accounts} onClose={() => setOpen(null)} />
+      <Dialog open={importing} onOpenChange={setImporting}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+          {importing && current && <BankImport bank={current} journals={journals.data} accounts={accounts} onDone={() => setImporting(false)} />}
+        </DialogContent>
+      </Dialog>
       <Dialog open={transfer} onOpenChange={setTransfer}>
-        <DialogContent>{transfer && <TransferForm from={bank} onDone={() => setTransfer(false)} />}</DialogContent>
+        <DialogContent>{transfer && <TransferForm from={bank} banks={banks} onDone={() => setTransfer(false)} />}</DialogContent>
       </Dialog>
     </div>
   )
@@ -166,14 +180,14 @@ function QuickEntry({ bank, accounts }: { bank: BankId; accounts: Account[] }) {
   )
 }
 
-function TransferForm({ from: initial, onDone }: { from: BankId; onDone: () => void }) {
+function TransferForm({ from: initial, banks, onDone }: { from: BankId; banks: Bank[]; onDone: () => void }) {
   const [from, setFrom] = useState<BankId>(initial)
-  const [to, setTo] = useState<BankId>(BANKS.find((b) => b.id !== initial)!.id)
+  const [to, setTo] = useState<BankId>(banks.find((b) => b.code !== initial)?.code ?? "")
   const [date, setDate] = useState(today)
   const [amount, setAmount] = useState<number | null>(null)
   const [description, setDescription] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const options = BANKS.map((b) => ({ value: b.id, label: b.name }))
+  const options = banks.map((b) => ({ value: b.code, label: b.name }))
 
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault()

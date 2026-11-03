@@ -15,19 +15,21 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useBanks } from "@/hooks/use-banks"
 import { useCollection } from "@/hooks/use-collection"
 import { ACCOUNTS, JOURNALS, JOURNAL_SOURCES, type Account, type Journal, type JournalLine, type JournalSource } from "@/lib/collections"
 import { emptyLine, entryError, round2, saveJournal, totalsOf } from "@/lib/journal"
 import { formatNumber, today } from "@/lib/utils"
 
 /** Sources entered on this page; bank, purchase and sales entries come from their own pages. */
-const MANUAL_SOURCES: JournalSource[] = ["manual", "gl"]
+const MANUAL_SOURCES = ["manual", "gl"] as const
 const CURRENCIES = ["IDR", "USD", "CNY", "SGD"]
 
 export default function JournalPage() {
   const accounts = useCollection<Account>(ACCOUNTS).data
   const { month, setMonth, where, skip } = useMonth()
   const journals = useCollection<Journal>(JOURNALS, { where, skip })
+  const { all: banks } = useBanks()
   const [source, setSource] = useState("")
   const [account, setAccount] = useState("")
   const [creating, setCreating] = useState(false)
@@ -44,7 +46,7 @@ export default function JournalPage() {
           id="filter-source"
           value={source}
           onChange={setSource}
-          rows={Object.entries(JOURNAL_SOURCES).map(([code, name]) => ({ code, name }))}
+          rows={[...Object.entries(JOURNAL_SOURCES).map(([code, name]) => ({ code, name })), ...banks.map((b) => ({ code: b.code, name: b.name }))]}
           allLabel="Semua sumber"
         />
         <div className="w-full sm:w-72">
