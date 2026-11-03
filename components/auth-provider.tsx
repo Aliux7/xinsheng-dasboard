@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { onAuthStateChanged, type User } from "firebase/auth"
 import { doc, getDoc, onSnapshot, serverTimestamp } from "firebase/firestore"
 
+import { setAuthCookie } from "@/lib/auth-cookie"
 import { addRecord } from "@/lib/db"
 import { auth, db } from "@/lib/firebase"
 
@@ -53,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let stopProfile = () => {}
     const stopAuth = onAuthStateChanged(auth, (user) => {
       stopProfile()
+      // Lets proxy.ts send signed-out visitors to /login before the app renders.
+      setAuthCookie(!!user)
       setState({ user, loading: false, role: null, roleLoaded: !user })
       if (!user) return
       ensureProfile(user).catch(console.error)

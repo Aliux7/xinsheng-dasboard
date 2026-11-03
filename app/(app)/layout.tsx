@@ -17,8 +17,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!loading && !user) router.replace("/login")
   }, [loading, user, router])
 
-  // Always render children (Next.js prerenders this shell); data stays
-  // protected by Firestore rules and useCollection waits for the user.
+  // proxy.ts already sends signed-out visitors to /login; this redirect only catches a Firebase
+  // session that ended while the cookie remained. Data stays protected by Firestore rules.
   return (
     <SidebarProvider>
       <AppSidebar />

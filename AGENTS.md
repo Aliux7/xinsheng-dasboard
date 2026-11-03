@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project conventions
 
-- **Client-only Firebase, no backend.** `lib/firebase.ts` exports `auth` and `db`. There is no server code, firebase-admin or API route.
+- **Client-only Firebase, no backend.** `lib/firebase.ts` exports `auth` and `db`. There is no server code, firebase-admin or API route. The only server-side piece is `proxy.ts`: it redirects to /login when the "signed in" cookie (`lib/auth-cookie.ts`, set by `AuthProvider`) is missing; it is a hint, not security.
 - **Auth:** `useAuth()` from `components/auth-provider.tsx`. Pages under `app/(app)/` are protected by `app/(app)/layout.tsx`. Each login user has a `users/{uid}` profile, created on first login.
 - **Documents that change together** (e.g. a weighing + stock): `transaction(async (w) => …)` from `lib/db.ts`; all-or-nothing and still logged. Document numbers use the company format PREFIX/YY + month letter (A = Jan … L = Dec) + 5 digits, e.g. TM/26J00001: `nextNumber(w, "TM", date)` inside the same transaction (counters in `counters/{PREFIX-YYYY-MM}`).
 - **Stock only changes through `addStock(w, { kind, … })`** (`lib/stock.ts`): it updates `materials/{code}.stock` and writes a `stockMovements` entry (kind from `STOCK_KINDS`, balance after, time). It refuses to go below zero; check first with `ensureStock` (in the transaction) and `stockErrors` (live in the form). Never edit `stock` from a form.

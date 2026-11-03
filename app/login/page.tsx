@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
+import { afterLogin } from "@/lib/auth-cookie"
 import { LoginForm } from "@/components/login-form"
 
 export default function LoginPage() {
@@ -11,7 +12,7 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (user) router.replace("/")
+    if (user) router.replace(afterLogin(window.location.search))
   }, [user, router])
 
   return (
