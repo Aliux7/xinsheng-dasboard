@@ -133,31 +133,3 @@ export function updateRecord(path: string, id: string, patch: DocumentData) {
 export function deleteRecord(path: string, id: string) {
   return transaction((w) => w.remove(path, id))
 }
-
-/**
- * Document number in the company's format: PREFIX/YY + month letter (A = Jan … L = Dec)
- * + 5 digits, e.g. TM/26J00001 for the first truck of October 2026.
- */
-export function formatDocNumber(prefix: string, date: string, seq: number) {
-  const [year, month] = date.split("-")
-  return `${prefix}/${year.slice(2)}${"ABCDEFGHIJKL"[Number(month) - 1]}${String(seq).padStart(5, "0")}`
-}
-
-/** Counter document for a prefix and month: `counters/{PREFIX-YYYY-MM}` = { last }. */
-export const counterId = (prefix: string, date: string) => `${prefix}-${date.slice(0, 7)}`
-
-/** Next document number for a prefix and month; call inside the same transaction as the save. */
-export async function nextNumber(w: Writer, prefix: string, date: string) {
-  const id = counterId(prefix, date)
-  const last = (await w.get<{ last: number }>("counters", id))?.last ?? 0
-  await w.set("counters", id, { last: last + 1 }, { silent: true })
-  return formatDocNumber(prefix, date, last + 1)
-}
-
-/** Daily number YYMMDDNNN (3-digit sequence per day), e.g. 251120009; counter `counters/{PREFIX-YYYY-MM-DD}`. */
-export async function nextDailyNumber(w: Writer, prefix: string, date: string) {
-  const id = `${prefix}-${date}`
-  const last = (await w.get<{ last: number }>("counters", id))?.last ?? 0
-  await w.set("counters", id, { last: last + 1 }, { silent: true })
-  return `${date.slice(2, 4)}${date.slice(5, 7)}${date.slice(8, 10)}${String(last + 1).padStart(3, "0")}`
-}

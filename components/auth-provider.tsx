@@ -79,11 +79,8 @@ const useHasRole = (...roles: Role[]) => {
   return !!role && [...SUPER, ...roles].includes(role)
 }
 
-/** Approves waiting documents and reopens accounting months: Admin (and Master/Developer). */
+/** Admin (and Master/Developer): gate Admin-only features with this. */
 export const useIsAdmin = () => useHasRole("admin")
-
-/** Closes a month (Tutup buku) and runs imports: Admin (and Master/Developer). */
-export const useCanCloseMonth = () => useHasRole("admin")
 
 /** Changes roles of users ranked below them: Master or Developer only. */
 export const useCanManageRoles = () => useHasRole()
