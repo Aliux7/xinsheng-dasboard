@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { BookCheckIcon, EyeIcon, PackageIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { BookCheckIcon, ChevronRightIcon, EyeIcon, PackageIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 
 import { DataTable, type Column } from "@/components/data-table"
@@ -153,8 +153,8 @@ function BankJournal() {
         </span>
       ),
     },
-    { header: "Masuk", cell: (r) => (r.amount > 0 ? formatNumber(r.amount) : ""), className: "text-right tabular-nums text-success" },
-    { header: "Keluar", cell: (r) => (r.amount < 0 ? formatNumber(-r.amount) : ""), className: "text-right tabular-nums" },
+    { header: "Masuk (Rp)", cell: (r) => (r.amount > 0 ? formatNumber(r.amount) : ""), className: "text-right tabular-nums text-success" },
+    { header: "Keluar (Rp)", cell: (r) => (r.amount < 0 ? formatNumber(-r.amount) : ""), className: "text-right tabular-nums" },
     {
       header: "Akun lawan",
       cell: (r) =>
@@ -178,18 +178,39 @@ function BankJournal() {
               disabled={busy}
             />
             {r.contra && linkOf(r.contra) === "inventory" && (
+              // A real button: not filled = dashed amber call to action; filled = summary with "Ubah".
               <button
                 type="button"
                 onClick={() => setStocking(r)}
+                disabled={busy}
                 className={cn(
-                  "flex items-start gap-1.5 rounded-md px-2 py-1 text-left text-xs",
-                  r.stock?.length ? "bg-brand-soft/60 text-brand" : "bg-warning-soft text-warning"
+                  "flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs shadow-xs transition-colors outline-none",
+                  "focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+                  r.stock?.length
+                    ? "border-brand/30 bg-background text-foreground hover:border-brand hover:bg-brand-soft/50"
+                    : "border-dashed border-warning bg-warning-soft text-warning hover:bg-warning/15 active:bg-warning/25"
                 )}
               >
-                <PackageIcon className="mt-0.5 size-3.5 shrink-0" />
-                <span>
-                  <strong>{DIRECTION_LABEL[stockDirection(r.amount)]}</strong>: {r.stock?.length ? stockText(r.stock, itemById) : "pilih bahan baku & jumlah"}
+                {r.stock?.length ? <PackageIcon className="size-4 shrink-0 text-brand" /> : <PlusIcon className="size-4 shrink-0" />}
+                <span className="min-w-0 flex-1">
+                  {r.stock?.length ? (
+                    <>
+                      <span className="font-medium text-brand">{DIRECTION_LABEL[stockDirection(r.amount)]}:</span> {stockText(r.stock, itemById)}
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold">Isi bahan baku</span> · {DIRECTION_LABEL[stockDirection(r.amount)].toLowerCase()}
+                    </>
+                  )}
                 </span>
+                {r.stock?.length ? (
+                  <span className="flex shrink-0 items-center gap-1 font-medium text-brand">
+                    <PencilIcon className="size-3.5" />
+                    Ubah
+                  </span>
+                ) : (
+                  <ChevronRightIcon className="size-4 shrink-0" />
+                )}
               </button>
             )}
           </div>
@@ -226,7 +247,7 @@ function BankJournal() {
           />
         </div>
         <MonthPicker month={month} onChange={setMonth} />
-        <div className="w-44">
+        <div className="w-full sm:w-44">
           <SimpleSelect id="status" value={status} onChange={(s) => (setStatus(s), setPicked(new Set()))} options={STATUS} />
         </div>
         {bank && (
@@ -266,7 +287,7 @@ function BankJournal() {
           <Button size="sm" variant="outline" onClick={() => setPicked(new Set(shown.filter((r) => !r.journal && !r.contra).map((r) => r.id)))} disabled={!todoIds.length}>
             Pilih yang belum ada akun lawan
           </Button>
-          <div className="w-72">
+          <div className="w-full sm:w-72">
             <SimpleSelect id="bulk" value={bulk} onChange={setBulk} options={contraOptions} placeholder="Akun lawan untuk baris terpilih" />
           </div>
           <Button size="sm" onClick={applyBulk} disabled={busy || !bulk || !picked.size}>
@@ -366,8 +387,10 @@ function StockLines({ row, account, items, onDone }: { row: BankTransaction; acc
       </DialogHeader>
       <div className="flex flex-col gap-2">
         {lines.map((l, i) => (
-          <div key={i} className="grid grid-cols-[1fr_7rem_9rem_auto] items-center gap-2">
-            <SimpleSelect id={`item-${i}`} value={l.item} onChange={(item) => set(i, { item })} options={options} placeholder="Pilih bahan baku" required />
+          <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-lg border p-2 sm:grid-cols-[1fr_7rem_9rem_auto] sm:border-0 sm:p-0">
+            <div className="col-span-3 sm:col-span-1">
+              <SimpleSelect id={`item-${i}`} value={l.item} onChange={(item) => set(i, { item })} options={options} placeholder="Pilih bahan baku" required />
+            </div>
             <NumberInput value={l.qty} onChange={(qty) => set(i, { qty })} placeholder={byId.get(l.item)?.unit ?? "Jumlah"} aria-label="Jumlah" required />
             <NumberInput value={l.value} onChange={(value) => set(i, { value })} placeholder="Nilai (Rp)" aria-label="Nilai (Rp)" required />
             <Button type="button" size="icon-sm" variant="ghost" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} disabled={lines.length === 1} aria-label="Hapus baris">

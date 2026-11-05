@@ -92,15 +92,16 @@ function BankBook() {
         </span>
       ),
     },
-    { header: "Masuk", cell: (r) => (!r.total && r.amount > 0 ? formatNumber(r.amount) : ""), className: "text-right tabular-nums text-success" },
-    { header: "Keluar", cell: (r) => (!r.total && r.amount < 0 ? formatNumber(-r.amount) : ""), className: "text-right tabular-nums" },
+    { header: "Masuk (Rp)", cell: (r) => (!r.total && r.amount > 0 ? formatNumber(r.amount) : ""), className: "text-right tabular-nums text-success" },
+    { header: "Keluar (Rp)", cell: (r) => (!r.total && r.amount < 0 ? formatNumber(-r.amount) : ""), className: "text-right tabular-nums" },
     { header: "Saldo", cell: (r) => formatNumber(r.balance), className: "text-right font-medium tabular-nums" },
     {
       header: "",
       cell: (r) =>
         !r.total && (
-          <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Ubah ${r.number || "saldo awal"}`}>
+          <Button size="sm" variant="outline" onClick={() => setEditing(r)} aria-label={`Ubah ${r.number || "saldo awal"}`}>
             <PencilIcon />
+            Ubah
           </Button>
         ),
     },
@@ -240,7 +241,7 @@ function EditRow({ row, onDone }: { row: BankTransaction; onDone: () => void }) 
           Baris ini sudah dijurnal, jadi tidak bisa diubah atau dihapus. Batalkan jurnalnya dulu di Jurnal buku bank.
         </p>
       )}
-      <div className="my-6 grid grid-cols-2 gap-4">
+      <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="edate">Tanggal</FieldLabel>
           <Input id="edate" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
@@ -249,11 +250,11 @@ function EditRow({ row, onDone }: { row: BankTransaction; onDone: () => void }) 
           <FieldLabel htmlFor="ename">Nama</FieldLabel>
           <Input id="ename" value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field className="col-span-2">
+        <Field className="sm:col-span-2">
           <FieldLabel htmlFor="edesc">Keterangan</FieldLabel>
           <Input id="edesc" value={description} onChange={(e) => setDescription(e.target.value)} required />
         </Field>
-        <Field className="col-span-2">
+        <Field className="sm:col-span-2">
           <FieldLabel htmlFor="ezh">Keterangan (Mandarin)</FieldLabel>
           <Input id="ezh" value={descriptionZh} onChange={(e) => setDescriptionZh(e.target.value)} />
         </Field>
@@ -265,11 +266,11 @@ function EditRow({ row, onDone }: { row: BankTransaction; onDone: () => void }) 
           <FieldLabel htmlFor="eamount">Jumlah (Rp)</FieldLabel>
           <NumberInput id="eamount" value={amount} onChange={setAmount} required />
         </Field>
-        <Field className="col-span-2">
+        <Field className="sm:col-span-2">
           <FieldLabel htmlFor="enote">Catatan</FieldLabel>
           <Input id="enote" value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
-        {error && <FieldError className="col-span-2">{error}</FieldError>}
+        {error && <FieldError className="sm:col-span-2">{error}</FieldError>}
       </div>
       <DialogFooter>
         <Button

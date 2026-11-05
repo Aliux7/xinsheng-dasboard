@@ -74,11 +74,13 @@ function Inventory() {
       header: "",
       cell: (i) => (
         <div className="flex justify-end gap-1">
-          <Button size="icon-sm" variant="ghost" render={<Link href={`/inventory-movements?item=${i.id}`} />} nativeButton={false} aria-label={`Riwayat ${i.name}`} title="Riwayat stok">
+          <Button size="sm" variant="outline" render={<Link href={`/inventory-movements?item=${i.id}`} />} nativeButton={false} aria-label={`Riwayat ${i.name}`} title="Riwayat stok">
             <HistoryIcon />
+            Riwayat
           </Button>
-          <Button size="icon-sm" variant="ghost" onClick={() => setEditing(i)} aria-label={`Ubah ${i.name}`} title="Ubah">
+          <Button size="sm" variant="outline" onClick={() => setEditing(i)} aria-label={`Ubah ${i.name}`} title="Ubah">
             <PencilIcon />
+            Ubah
           </Button>
         </div>
       ),
@@ -210,7 +212,7 @@ function ItemForm({
       <DialogHeader>
         <DialogTitle>{item ? `Ubah ${item.name}` : "Tambah bahan baku"}</DialogTitle>
       </DialogHeader>
-      <div className="my-6 grid grid-cols-2 gap-4">
+      <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="code">Kode bahan baku</FieldLabel>
           <Input id="code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="BB001" required />
@@ -238,7 +240,7 @@ function ItemForm({
             ))}
           </datalist>
         </Field>
-        <Field className="col-span-2">
+        <Field className="sm:col-span-2">
           <FieldLabel htmlFor="stockAccount">Akun persediaan</FieldLabel>
           <SimpleSelect
             id="stockAccount"
@@ -257,7 +259,7 @@ function ItemForm({
               : "Belum ada akun terhubung inventory. Atur di Daftar akun → Terhubung dengan."}
           </FieldDescription>
         </Field>
-        <Field className="col-span-2">
+        <Field className="sm:col-span-2">
           <FieldLabel htmlFor="dept">Departemen</FieldLabel>
           <SimpleSelect
             id="dept"
@@ -272,10 +274,10 @@ function ItemForm({
         </Field>
         {item ? (
           <>
-            <p className="col-span-2 text-sm text-muted-foreground">
+            <p className="sm:col-span-2 text-sm text-muted-foreground">
               Stok sekarang {formatNumber(item.stock)} {item.unit}. Stok hanya berubah lewat Stok masuk / keluar.
             </p>
-            <Field orientation="horizontal" className="col-span-2">
+            <Field orientation="horizontal" className="sm:col-span-2">
               <Checkbox id="active" checked={active} onCheckedChange={setActive} />
               <FieldLabel htmlFor="active">Aktif</FieldLabel>
             </Field>
@@ -293,7 +295,7 @@ function ItemForm({
                   <FieldLabel htmlFor="odate">Tanggal stok awal</FieldLabel>
                   <Input id="odate" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
                 </Field>
-                <Field className="col-span-2">
+                <Field className="sm:col-span-2">
                   <FieldLabel htmlFor="ovalue">Nilai stok awal (Rp)</FieldLabel>
                   <NumberInput id="ovalue" value={openingValue} onChange={setOpeningValue} placeholder="0" required />
                   <FieldDescription>Total rupiah stok awal ini; harus ikut di Saldo awal akun persediaannya.</FieldDescription>
@@ -302,7 +304,7 @@ function ItemForm({
             )}
           </>
         )}
-        {error && <FieldError className="col-span-2">{error}</FieldError>}
+        {error && <FieldError className="sm:col-span-2">{error}</FieldError>}
       </div>
       <DialogFooter>
         <DialogClose render={<Button variant="outline" type="button" />}>Batal</DialogClose>

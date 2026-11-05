@@ -45,8 +45,9 @@ export default function DepartmentsPage() {
     {
       header: "",
       cell: (d) => (
-        <Button size="icon-sm" variant="ghost" onClick={() => setEditing(d)} aria-label={`Ubah ${d.code}`}>
+        <Button size="sm" variant="outline" onClick={() => setEditing(d)} aria-label={`Ubah ${d.code}`}>
           <PencilIcon />
+          Ubah
         </Button>
       ),
     },

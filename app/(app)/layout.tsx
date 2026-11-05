@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import { AppSidebar, pageTitle } from "@/components/app-sidebar"
 import { useAuth } from "@/components/auth-provider"
+import { GuideToggle, PageGuide } from "@/components/page-guide"
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
@@ -27,11 +28,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-3">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mr-2 data-vertical:h-4 data-vertical:self-auto" />
-          <h1 className="font-medium">{pageTitle(pathname)}</h1>
+          <h1 className="truncate font-medium">{pageTitle(pathname)}</h1>
+          <GuideToggle path={pathname} />
         </header>
         {/* Pages read the current date (default month) and search params; Suspense lets them render at
             request time instead of in the build's prerender (cacheComponents). */}
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 sm:p-4">
+          <PageGuide path={pathname} />
           <Suspense>{children}</Suspense>
         </div>
       </SidebarInset>

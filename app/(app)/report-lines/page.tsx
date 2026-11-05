@@ -53,8 +53,9 @@ export default function ReportLinesPage() {
     {
       header: "",
       cell: (l) => (
-        <Button size="icon-sm" variant="ghost" onClick={() => setEditing(l)} aria-label={`Ubah ${l.code}`}>
+        <Button size="sm" variant="outline" onClick={() => setEditing(l)} aria-label={`Ubah ${l.code}`}>
           <PencilIcon />
+          Ubah
         </Button>
       ),
     },

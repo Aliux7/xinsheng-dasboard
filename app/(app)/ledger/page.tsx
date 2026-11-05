@@ -84,8 +84,9 @@ function Ledger() {
       header: "",
       cell: (r) =>
         r.journal && (
-          <Button size="icon-sm" variant="ghost" onClick={() => setViewing(r.journal!.id)} aria-label={`Lihat ${r.journal.number}`}>
+          <Button size="sm" variant="outline" onClick={() => setViewing(r.journal!.id)} aria-label={`Lihat ${r.journal.number}`}>
             <EyeIcon />
+            Lihat
           </Button>
         ),
     },

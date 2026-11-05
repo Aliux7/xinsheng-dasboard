@@ -82,8 +82,9 @@ export default function AccountsPage() {
     {
       header: "",
       cell: (a) => (
-        <Button size="icon-sm" variant="ghost" onClick={() => setEditing(a)} aria-label={`Ubah ${a.code}`}>
+        <Button size="sm" variant="outline" onClick={() => setEditing(a)} aria-label={`Ubah ${a.code}`}>
           <PencilIcon />
+          Ubah
         </Button>
       ),
     },
@@ -93,7 +94,7 @@ export default function AccountsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <Input className="w-full sm:w-72" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nomor, nama, grup…" aria-label="Cari akun" />
-        <div className="w-44">
+        <div className="w-full sm:w-44">
           <SimpleSelect id="type" value={type} onChange={setType} placeholder="Semua tipe" options={[{ value: "", label: "Semua tipe" }, ...typeOptions]} />
         </div>
         <Field orientation="horizontal" className="w-auto">
@@ -193,7 +194,7 @@ function AccountForm({ account, taken, lines, onDone }: { account: Account | nul
       <DialogHeader>
         <DialogTitle>{account ? `Ubah akun ${account.code}` : "Tambah akun"}</DialogTitle>
       </DialogHeader>
-      <div className="my-6 grid grid-cols-2 gap-4">
+      <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="code">Nomor akun</FieldLabel>
           <Input id="code" value={form.code} onChange={(e) => setCode(e.target.value)} placeholder="110101" inputMode="numeric" disabled={!!account} required />
@@ -246,7 +247,7 @@ function AccountForm({ account, taken, lines, onDone }: { account: Account | nul
           <SimpleSelect id="reportLine" value={form.reportLine} onChange={(reportLine) => set({ reportLine })} options={lineOptions} placeholder="— Tidak ada —" />
           <FieldDescription>Boleh kosong. Daftarnya diatur di halaman Baris laporan.</FieldDescription>
         </Field>
-        <Field className="col-span-2">
+        <Field className="sm:col-span-2">
           <FieldLabel htmlFor="link">Terhubung dengan</FieldLabel>
           <SimpleSelect
             id="link"
@@ -273,7 +274,7 @@ function AccountForm({ account, taken, lines, onDone }: { account: Account | nul
             <FieldLabel htmlFor="active">Aktif</FieldLabel>
           </Field>
         )}
-        {error && <FieldError className="col-span-2">{error}</FieldError>}
+        {error && <FieldError className="sm:col-span-2">{error}</FieldError>}
       </div>
       <DialogFooter>
         <DialogClose render={<Button variant="outline" type="button" />}>Batal</DialogClose>

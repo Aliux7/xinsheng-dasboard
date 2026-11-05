@@ -20,6 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { auth } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,9 @@ const itemClass =
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { user, role } = useAuth();
+  // On a phone the menu is a sheet over the page: close it once a page is chosen.
+  const { isMobile, setOpenMobile } = useSidebar();
+  const close = () => isMobile && setOpenMobile(false);
 
   return (
     <Sidebar
@@ -88,6 +92,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         <SidebarHeader className="px-4">
           <Link
             href="/accounts"
+            onClick={close}
             className="flex items-center gap-0 text-xl font-semibold italic"
           >
             <Logo className="text-black bg-transparent text-3xl p-0 m-0 h-14 w-6.5" />
@@ -110,7 +115,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                           <SidebarMenuButton
                             isActive={active}
                             className={cn(itemClass, active && "bg-primary! text-primary-foreground!")}
-                            render={<Link href={item.url} />}
+                            render={<Link href={item.url} onClick={close} />}
                           >
                             <item.icon />
                             {item.title}

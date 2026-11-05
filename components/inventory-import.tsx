@@ -228,7 +228,7 @@ export function InventoryImport({
           />
           <div className="flex flex-wrap items-end gap-4">
             {withStock > 0 && (
-              <Field className="w-48">
+              <Field className="w-full sm:w-48">
                 <FieldLabel htmlFor="idate">Tanggal stok awal</FieldLabel>
                 <Input id="idate" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
               </Field>

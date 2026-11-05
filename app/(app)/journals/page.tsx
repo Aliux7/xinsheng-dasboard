@@ -76,8 +76,9 @@ export default function JournalsPage() {
     {
       header: "",
       cell: (j) => (
-        <Button size="icon-sm" variant="ghost" onClick={() => setViewing(j.id)} aria-label={`Lihat ${j.number}`}>
+        <Button size="sm" variant="outline" onClick={() => setViewing(j.id)} aria-label={`Lihat ${j.number}`}>
           <EyeIcon />
+          Lihat
         </Button>
       ),
     },
@@ -87,7 +88,7 @@ export default function JournalsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <MonthPicker month={month} onChange={setMonth} />
-        <div className="w-44">
+        <div className="w-full sm:w-44">
           <SimpleSelect id="source" value={source} onChange={setSource} options={SOURCES} placeholder="Semua sumber" />
         </div>
         <Input className="w-full sm:w-64" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nomor, keterangan, akun…" aria-label="Cari jurnal" />
