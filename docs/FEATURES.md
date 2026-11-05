@@ -3,6 +3,7 @@
 On 2026-11-05 the app was cut back to its foundation: **auth, users (roles), change logs**. Everything below
 was removed from the code. This file is the record of what existed, so features can be rebuilt.
 
+- Rebuilt since: **Buku bank** (page `/bank`, `banks`, `bankTransactions`, BANK BOOK import) without the journal link — see AGENTS.md.
 - Code of the features as last committed: git commit `adfcd6e` ("add proxy + import for buku bank").
   Recover a file with `git show adfcd6e:<path>` or `git checkout adfcd6e -- <path>`.
 - Work from the session of 2026-11-04 was **never committed** and is described only here

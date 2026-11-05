@@ -51,7 +51,7 @@ export type Writer = {
   get: <T = DocumentData>(path: string, id: string) => Promise<T | undefined>
   set: (path: string, id: string, data: DocumentData, options?: WriteOptions) => Promise<void>
   update: (path: string, id: string, patch: DocumentData, options?: WriteOptions) => Promise<void>
-  remove: (path: string, id: string) => Promise<void>
+  remove: (path: string, id: string, options?: WriteOptions) => Promise<void>
   /** A fresh document id for `path`. */
   newId: (path: string) => string
 }
@@ -107,7 +107,7 @@ export async function transaction<R>(fn: (w: Writer) => Promise<R>, txOptions: W
         if (!before) throw new Error(`${id} tidak ditemukan.`)
         await write(path, id, { ...before, ...patch }, () => tx.update(doc(db, path, id), patch), options)
       },
-      remove: (path, id) => write(path, id, undefined, () => tx.delete(doc(db, path, id))),
+      remove: (path, id, options) => write(path, id, undefined, () => tx.delete(doc(db, path, id)), options),
       newId: (path) => doc(collection(db, path)).id,
     }
 

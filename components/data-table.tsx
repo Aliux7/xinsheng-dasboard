@@ -31,7 +31,7 @@ export function DataTable<T extends { id: string }>({
   data: T[]
   columns: Column<T>[]
   empty?: string
-  /** Shows rows under headings, in order of first appearance. */
+  /** Shows rows under headings; a heading starts again whenever it changes from the row above. */
   groupBy?: (row: T) => string
   /** Extra classes per row, e.g. a warning colour. */
   rowClassName?: (row: T) => string | undefined
@@ -69,9 +69,9 @@ export function DataTable<T extends { id: string }>({
               </TableCell>
             </TableRow>
           ) : (
-            grouped(data, groupBy).flatMap(([heading, rows]) => [
+            grouped(data, groupBy).flatMap(([heading, rows], i) => [
               heading !== null && (
-                <TableRow key={`heading-${heading}`} className="bg-muted/50 hover:bg-muted/50">
+                <TableRow key={`heading-${i}-${heading}`} className="bg-muted/50 hover:bg-muted/50">
                   <TableCell colSpan={columns.length} className="font-medium">
                     {heading || "Tanpa judul"}
                   </TableCell>
@@ -94,13 +94,15 @@ export function DataTable<T extends { id: string }>({
   )
 }
 
-/** [heading, rows] pairs in order of first appearance; one null heading when not grouping. */
+/** [heading, rows] per run of consecutive rows with the same heading; one null heading when not grouping. */
 function grouped<T>(rows: T[], groupBy?: (row: T) => string): [string | null, T[]][] {
   if (!groupBy) return [[null, rows]]
-  const groups = new Map<string, T[]>()
+  const groups: [string, T[]][] = []
   for (const row of rows) {
     const key = groupBy(row)
-    groups.set(key, [...(groups.get(key) ?? []), row])
+    const last = groups.at(-1)
+    if (last?.[0] === key) last[1].push(row)
+    else groups.push([key, [row]])
   }
-  return [...groups]
+  return groups
 }

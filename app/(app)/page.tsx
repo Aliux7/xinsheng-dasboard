@@ -1,12 +1,6 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import { roleLabel, useAuth } from "@/components/auth-provider"
-
-export default function HomePage() {
-  const { user, role } = useAuth()
-  return (
-    <p className="text-sm text-muted-foreground">
-      Masuk sebagai <span className="font-medium text-foreground">{user?.email}</span> ({roleLabel(role)}).
-    </p>
-  )
+/** No home page: "/" (where login lands) opens the first page of the menu. */
+export default function Home() {
+  redirect("/accounts")
 }

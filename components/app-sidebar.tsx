@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { HistoryIcon, HomeIcon, LogOutIcon, UsersIcon, type LucideIcon } from "lucide-react";
+import { ArrowLeftRightIcon, BookCheckIcon, BookOpenIcon, BookTextIcon, Building2Icon, CoinsIcon, FactoryIcon, FlagIcon, FlaskConicalIcon, HistoryIcon, LandmarkIcon, ListChecksIcon, ListTreeIcon, LogOutIcon, NotebookPenIcon, PackageIcon, ScaleIcon, TrendingUpIcon, UsersIcon, type LucideIcon } from "lucide-react";
 
 import { roleLabel, useAuth } from "@/components/auth-provider";
 import { Logo } from "@/components/logo";
@@ -28,12 +28,42 @@ type NavLink = { title: string; url: string; icon: LucideIcon };
 
 /** Add new pages here, under a section. The header title also comes from this list. */
 export const nav: { label: string; items: NavLink[] }[] = [
-  { label: "Ringkasan", items: [{ title: "Beranda", url: "/", icon: HomeIcon }] },
+  {
+    label: "Keuangan",
+    items: [
+      { title: "Daftar akun", url: "/accounts", icon: BookOpenIcon },
+      { title: "Baris laporan", url: "/report-lines", icon: ListTreeIcon },
+      { title: "Saldo awal", url: "/opening-balances", icon: FlagIcon },
+      { title: "Buku bank", url: "/bank", icon: LandmarkIcon },
+      { title: "Jurnal buku bank", url: "/bank-journal", icon: BookCheckIcon },
+      { title: "Jurnal umum", url: "/journals", icon: NotebookPenIcon },
+      { title: "Buku besar", url: "/ledger", icon: BookTextIcon },
+      { title: "Neraca saldo", url: "/trial-balance", icon: ListChecksIcon },
+    ],
+  },
+  {
+    label: "Gudang",
+    items: [
+      { title: "Stok bahan baku", url: "/inventory", icon: PackageIcon },
+      { title: "Riwayat stok", url: "/inventory-movements", icon: ArrowLeftRightIcon },
+      { title: "Nilai persediaan", url: "/inventory-value", icon: CoinsIcon },
+      { title: "Departemen", url: "/departments", icon: Building2Icon },
+    ],
+  },
+  {
+    label: "Laporan",
+    items: [
+      { title: "HPP bulanan", url: "/cogs", icon: FactoryIcon },
+      { title: "Neraca", url: "/balance-sheet", icon: ScaleIcon },
+      { title: "Laba rugi", url: "/profit-loss", icon: TrendingUpIcon },
+    ],
+  },
   {
     label: "Admin",
     items: [
       { title: "Pengguna", url: "/users", icon: UsersIcon },
       { title: "Riwayat perubahan", url: "/logs", icon: HistoryIcon },
+      { title: "Data uji", url: "/test-data", icon: FlaskConicalIcon },
     ],
   },
 ];
@@ -57,7 +87,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <div className="flex min-h-0 flex-1 flex-col gap-0">
         <SidebarHeader className="px-4">
           <Link
-            href="/"
+            href="/accounts"
             className="flex items-center gap-0 text-xl font-semibold italic"
           >
             <Logo className="text-black bg-transparent text-3xl p-0 m-0 h-14 w-6.5" />
@@ -69,7 +99,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             <div className="px-4 pb-10">
               {nav.map((section) => (
                 <SidebarGroup key={section.label} className="p-0 pt-5 first:pt-0">
-                  <SidebarGroupLabel className="p-0 text-xs font-medium text-sidebar-foreground uppercase">
+                  <SidebarGroupLabel className="p-0 text-xs font-semibold tracking-wide text-brand uppercase">
                     {section.label}
                   </SidebarGroupLabel>
                   <SidebarMenu>

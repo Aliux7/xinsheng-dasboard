@@ -64,7 +64,7 @@ export function LoginForm({
       <form onSubmit={handleSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
-            <Logo className="size-16 rounded-xl text-4xl" />
+            <Logo className="size-16 rounded-xl text-4xl ring-4 ring-brand-soft" />
             <h1 className="text-xl font-bold">Selamat datang di Xinsheng</h1>
             <FieldDescription>
               Masuk dengan email dan kata sandi Anda

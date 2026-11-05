@@ -21,13 +21,14 @@ type Props = {
   options: Option[]
   placeholder?: string
   required?: boolean
+  disabled?: boolean
 }
 
 /**
  * Single-choice dropdown from a list of options: opens a search box above a scrollable list.
  * `required` shows the * on its FieldLabel.
  */
-export function SimpleSelect({ id, value, onChange, options, placeholder = "Pilih…", required }: Props) {
+export function SimpleSelect({ id, value, onChange, options, placeholder = "Pilih…", required, disabled }: Props) {
   const selected = options.find((o) => o.value === value) ?? null
 
   return (
@@ -38,6 +39,7 @@ export function SimpleSelect({ id, value, onChange, options, placeholder = "Pili
       itemToStringLabel={(o: Option) => o.label}
       isItemEqualToValue={(a: Option, b: Option) => a.value === b.value}
       required={required}
+      disabled={disabled}
     >
       <ComboboxTrigger
         id={id}

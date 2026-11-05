@@ -29,6 +29,11 @@
   --color-sidebar: var(--sidebar);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -63,29 +68,35 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  /* Black & white is the main palette; brand blue #2C3480 is the support colour
-     (focus rings, secondary buttons and badges). */
+  /* Black & white is the main palette (primary buttons, text, active menu). Colour is support only:
+     brand blue #2C3480 (focus, secondary, info), a faint brand tint on greys and borders (the sidebar stays white),
+     green = success / money in, amber = needs a look, red = errors only. */
   --brand: #2c3480;
   --brand-foreground: #ffffff;
-  --secondary: #eceefa;
+  --brand-soft: #e8eafa;
+  --secondary: #e8eafa;
   --secondary-foreground: #2c3480;
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --muted: oklch(0.97 0.007 277);
+  --muted-foreground: oklch(0.53 0.02 277);
+  --accent: oklch(0.955 0.018 277);
+  --accent-foreground: #2c3480;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.915 0.012 277);
+  --input: oklch(0.9 0.014 277);
   --ring: #6b74c4;
   --radius: 0.625rem;
   --sidebar: var(--background);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.945 0.022 277);
+  --sidebar-accent-foreground: #2c3480;
+  --sidebar-border: oklch(0.915 0.012 277);
+  --sidebar-ring: #6b74c4;
 }
 
 .dark {
@@ -99,12 +110,17 @@
   --primary-foreground: oklch(0.205 0 0);
   --brand: #8a92e0;
   --brand-foreground: #0a0a0a;
+  --brand-soft: #262a4d;
   --secondary: #262a4d;
   --secondary-foreground: #c5c9eb;
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --success: #4ade80;
+  --success-soft: #14532d;
+  --warning: #fbbf24;
+  --warning-soft: #451a03;
+  --muted: oklch(0.269 0.012 277);
+  --muted-foreground: oklch(0.72 0.02 277);
+  --accent: oklch(0.3 0.03 277);
+  --accent-foreground: #c5c9eb;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -113,8 +129,8 @@
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.922 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.3 0.03 277);
+  --sidebar-accent-foreground: #c5c9eb;
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
