@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
 import { AppSidebar, pageTitle } from "@/components/app-sidebar"
@@ -29,7 +29,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Separator orientation="vertical" className="mr-2 data-vertical:h-4 data-vertical:self-auto" />
           <h1 className="font-medium">{pageTitle(pathname)}</h1>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+        {/* Pages read the current date (default month) and search params; Suspense lets them render at
+            request time instead of in the build's prerender (cacheComponents). */}
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <Suspense>{children}</Suspense>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
